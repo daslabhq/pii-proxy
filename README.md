@@ -80,6 +80,37 @@ Text ──→ [Regex Layer] ──→ [Local LLM Layer] ──→ Deduplicated 
 
 Overlapping detections are deduplicated automatically (regex wins ties).
 
+### Configuring the LLM detector
+
+```typescript
+import { PrivacyProxy, LlmDetector, defaultDetectors } from 'pii-proxy';
+
+// Use a different model
+const proxy = PrivacyProxy.withLocalLlm({ model: 'qwen3:0.6b' });
+
+// Point to a remote Ollama instance or any OpenAI-compatible API
+const proxy2 = PrivacyProxy.withLocalLlm({
+  endpoint: 'https://your-server.com/v1/chat/completions',
+  model: 'gpt-4o-mini',
+});
+
+// Detect only specific entity types (faster, more focused)
+const proxy3 = PrivacyProxy.withLocalLlm({
+  entityTypes: ['person_name', 'organization'],
+});
+
+// Full control — compose your own detector stack
+const proxy4 = new PrivacyProxy({
+  detectors: [
+    ...defaultDetectors,                          // regex layer
+    new LlmDetector({ model: 'qwen3:1.7b' }),    // LLM layer
+    // add more layers here — custom NER, dictionary lookup, etc.
+  ],
+});
+```
+
+Detectors run in order. Each returns `Detection[]` (or `Promise<Detection[]>` for async). Overlapping detections are resolved by position — earlier detectors win ties.
+
 ## How it works
 
 1. **Detect** — layered pipeline finds PII entities (regex + optional local LLM).
@@ -138,19 +169,43 @@ const original = proxy.unmaskObject(masked);
 
 ## Custom detectors
 
-Bring your own detection logic — any object with a `detect(text)` method works:
+Any object with a `detect(text)` method is a detector. Use this to add domain-specific patterns, call external NER APIs, or integrate your own models:
 
 ```typescript
+import { PrivacyProxy, defaultDetectors, LlmDetector } from 'pii-proxy';
+
+// Domain-specific: detect German health insurance numbers (Versichertennummer)
+const germanInsuranceDetector = {
+  detect(text) {
+    const re = /\b[A-Z]\d{9}\b/g;
+    const results = [];
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      results.push({ type: 'insurance_id', value: m[0], start: m.index, end: m.index + m[0].length });
+    }
+    return results;
+  }
+};
+
+// Stack: regex → your domain detector → LLM for everything else
 const proxy = new PrivacyProxy({
   detectors: [
     ...defaultDetectors,
-    {
-      async detect(text) {
-        // Your custom logic — call an API, run a model, use a dictionary
-        return [{ type: 'custom_id', value: 'ABC-123', start: 10, end: 17 }];
-      }
-    }
-  ]
+    germanInsuranceDetector,
+    new LlmDetector({ model: 'qwen3:1.7b' }),
+  ],
+});
+```
+
+You can also add custom generators for your entity types:
+
+```typescript
+const proxy = new PrivacyProxy({
+  detectors: [...defaultDetectors, new LlmDetector()],
+  generators: {
+    // Custom replacement for your entity type
+    insurance_id: (real) => 'X' + Math.random().toString().slice(2, 11),
+  },
 });
 ```
 
