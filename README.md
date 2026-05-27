@@ -1,6 +1,6 @@
 # pii-proxy
 
-[![Test](https://github.com/mirkokiefer/pii-proxy/actions/workflows/test.yml/badge.svg)](https://github.com/mirkokiefer/pii-proxy/actions/workflows/test.yml)
+[![Test](https://github.com/daslabhq/pii-proxy/actions/workflows/test.yml/badge.svg)](https://github.com/daslabhq/pii-proxy/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 Privacy proxy for AI agents. Mask PII before sending to LLMs, unmask responses to write back to real systems.
@@ -137,7 +137,7 @@ const real = proxy.unmask(response.content[0].text);
 ## Roadmap
 
 - [x] **v0.1** — Regex detection, faker replacement, bijective round-trip
-- [ ] **v0.2** — NER-based name/location detection (optional Presidio backend)
+- [ ] **v0.2** — Pluggable entity detection — bring your own detectors (local LLM, Presidio NER, custom regex). Layered pipeline: fast regex first, LLM for names/locations/domain-specific entities
 - [ ] **v0.3** — Tool-aware selective masking (keep location real for hotel search, mask for email)
 - [ ] **v0.4** — Persistent map backends (Redis, SQLite)
 - [ ] **v0.5** — Anthropic/OpenAI SDK middleware (drop-in agent integration)

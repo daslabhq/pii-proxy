@@ -21,7 +21,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mirkokiefer/pii-proxy.git"
+    "url": "git+https://github.com/daslabhq/pii-proxy.git"
   },
   "dependencies": {
     "@faker-js/faker": "^9.0.0"
