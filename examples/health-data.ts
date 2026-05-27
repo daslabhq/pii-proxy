@@ -21,14 +21,14 @@ const client = new Anthropic();
 const patientRecord = `Patient: Marcus Weber (DOB: 15.03.1987)
 MRN: MRN-2024-08391
 Provider: Dr. Sarah Chen, Universitätsklinikum Heidelberg
-Diagnosis: Myopia progression, bilateral astigmatism
-Rx: OD -3.25 -0.75 x 180, OS -2.75 -1.00 x 175
+Diagnosis: Type 2 diabetes, hypertension
+Medication: Metformin 1000mg 2x/day, Lisinopril 10mg 1x/day
 Insurance: TK 109876543
 Contact: marcus.weber@gmail.com, +49 170 1234567
 Address: Hauptstraße 42, 68161 Mannheim, Germany
-Notes: Patient reports increased screen time (10+ hrs/day, software engineer).
-Referred by Dr. Anika Hoffmann, Augenarzt Mannheim.
-Follow-up scheduled in 6 months. Consider ortho-k lenses if progression continues.`;
+Notes: Patient reports improved diet compliance. HbA1c dropped from 8.1 to 7.2.
+Referred by Dr. Anika Hoffmann, Hausarztpraxis Mannheim.
+Follow-up scheduled in 3 months.`;
 
 console.log('╔══════════════════════════════════════════════════╗');
 console.log('║  pii-proxy — Health Data Privacy Demo           ║');
@@ -68,9 +68,9 @@ const response = await client.messages.create({
   messages: [
     {
       role: 'user',
-      content: `You are an ophthalmology AI assistant. Analyze this patient record and provide:
+      content: `You are a clinical AI assistant. Analyze this patient record and provide:
 1. A brief clinical summary
-2. Risk assessment for myopia progression
+2. Risk assessment
 3. Recommended next steps
 4. A draft follow-up letter to the referring physician
 

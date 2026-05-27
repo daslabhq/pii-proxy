@@ -50,9 +50,9 @@ import { PrivacyProxy } from 'pii-proxy';
 const proxy = PrivacyProxy.withLocalLlm({ model: 'qwen3:1.7b' });
 
 const masked = await proxy.mask(
-  "Patient: Marcus Weber, treated by Dr. Sarah Chen at Universitätsklinikum Heidelberg"
+  "Patient Marcus Weber, treated at Universitätsklinikum Heidelberg. Contact: marcus.weber@gmail.com"
 );
-// → "Patient: James Thompson, treated by Dr. Emily Rodriguez at Cleveland Clinic"
+// → "Patient James Thompson, treated at Bradtke Medical. Contact: lizeth53@yahoo.com"
 ```
 
 Setup:
@@ -228,7 +228,7 @@ proxy2.unmask(text); // works with the same mappings
 
 ### Health data with local LLM ([examples/health-data.ts](examples/health-data.ts))
 
-Full round-trip — local LLM detects patient names and providers, Claude analyzes the masked record, unmask restores real data for the EHR:
+Full round-trip — local LLM detects patient names and providers, Claude analyzes the masked record, unmask restores real data:
 
 ```bash
 export ANTHROPIC_API_KEY=sk-...
@@ -244,7 +244,7 @@ bun run examples/anthropic-agent.ts
 
 ## Model benchmarks
 
-Detection rates on a realistic ophthalmology patient record containing 10 PII entities (names, DOB, medical record number, insurance ID, organization, address, email, phone). Regex detectors handle email + phone in all configurations — the LLM layer adds semantic entity detection.
+Detection rates on a realistic clinical patient record containing 10 PII entities (names, DOB, medical record number, insurance ID, organization, address, email, phone). Regex detectors handle email + phone in all configurations — the LLM layer adds semantic entity detection.
 
 | Model | Size | Entities detected | Notes |
 |---|---|---|---|
@@ -263,7 +263,7 @@ Provider: Dr. Sarah Chen, Universitätsklinikum Heidelberg
 Insurance: TK 109876543
 Contact: marcus.weber@gmail.com, +49 170 1234567
 Address: Hauptstraße 42, 68161 Mannheim, Germany
-Referred by Dr. Anika Hoffmann, Augenarzt Mannheim.
+Referred by Dr. Anika Hoffmann, Hausarztpraxis Mannheim.
 ```
 
 ## Roadmap
