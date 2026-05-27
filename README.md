@@ -187,6 +187,30 @@ export ANTHROPIC_API_KEY=sk-...
 bun run examples/anthropic-agent.ts
 ```
 
+## Model benchmarks
+
+Detection rates on a realistic ophthalmology patient record containing 10 PII entities (names, DOB, medical record number, insurance ID, organization, address, email, phone). Regex detectors handle email + phone in all configurations — the LLM layer adds semantic entity detection.
+
+| Model | Size | Entities detected | Notes |
+|---|---|---|---|
+| Regex only | 0 | 2/10 | Email + phone only — no names, orgs, or IDs |
+| + `qwen3:0.6b` | 522 MB | 6/10 | Catches patient name, DOB, insurance, address. Misses doctor names, org, medical record |
+| + `llama3.2` | 2.0 GB | 3/10 | Poor structured output — mostly finds just the patient name |
+| **+ `qwen3:1.7b`** | **1.4 GB** | **9/10** | **Catches all patient PII, org, address, medical record. Misses one buried doctor name** |
+
+**Recommendation:** `qwen3:1.7b` is the default — best accuracy-to-size ratio. All models produce **perfect round-trip** (unmask restores the original text exactly).
+
+Test input:
+```
+Patient: Marcus Weber (DOB: 15.03.1987)
+MRN: MRN-2024-08391
+Provider: Dr. Sarah Chen, Universitätsklinikum Heidelberg
+Insurance: TK 109876543
+Contact: marcus.weber@gmail.com, +49 170 1234567
+Address: Hauptstraße 42, 68161 Mannheim, Germany
+Referred by Dr. Anika Hoffmann, Augenarzt Mannheim.
+```
+
 ## Roadmap
 
 - [x] **v0.1** — Regex detection, faker replacement, bijective round-trip
