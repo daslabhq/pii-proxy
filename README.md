@@ -3,13 +3,20 @@
 [![Test](https://github.com/daslabhq/pii-proxy/actions/workflows/test.yml/badge.svg)](https://github.com/daslabhq/pii-proxy/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Privacy proxy for AI agents. Mask PII before sending to LLMs, unmask responses to write back to real systems.
+Privacy layer for AI agents. Mask PII before it reaches any LLM — unmask when writing back to your systems. PII detection runs locally and never leaves your infrastructure.
+
+```
+Your data ──→ [pii-proxy] ──→ LLM sees only fake data ──→ [pii-proxy] ──→ Real data restored
+              mask()           plausible fakes                unmask()       perfect round-trip
+```
+
+Works with Node.js, Bun, and any OpenAI-compatible API (Claude, GPT, local models).
 
 ## Why
 
-Your AI agent processes emails, spreadsheets, CRM data. You don't want to send real names, emails, and tracking numbers to Claude or GPT. But token-based masking (`PERSON_1`, `EMAIL_2`) degrades model quality — LLMs reason poorly over meaningless tokens.
+Your AI agent processes patient records, insurance claims, customer data. You don't want real names, emails, and ID numbers hitting Claude or GPT. But token-based masking (`PERSON_1`, `EMAIL_2`) degrades model quality — LLMs reason poorly over meaningless tokens.
 
-**pii-proxy** replaces PII with plausible fake values — the LLM sees realistic data and reasons correctly. A bijective map lets you reverse everything when writing back to your database.
+**pii-proxy** replaces PII with plausible fake values — the LLM sees realistic data and reasons correctly. A bijective map lets you reverse everything when writing back.
 
 ## Install
 
@@ -41,7 +48,7 @@ const real = proxy.unmask(llmResponse);
 
 Regex catches emails, IPs, tracking numbers. But what about `"Patient: Marcus Weber"`? That's a name — no regex will reliably find it.
 
-**v0.2** adds pluggable detection with a local LLM layer. A model running on your machine (via [Ollama](https://ollama.com)) detects names, organizations, locations, and domain-specific entities. The PII detection itself never leaves your infrastructure.
+**v0.2** adds a local LLM detection layer. A model running on your machine (via [Ollama](https://ollama.com)) detects names, organizations, locations, and domain-specific entities. **PII never leaves your network** — not even for detection.
 
 ```typescript
 import { PrivacyProxy } from 'pii-proxy';
@@ -209,6 +216,41 @@ const proxy = new PrivacyProxy({
 });
 ```
 
+## Security model
+
+pii-proxy is designed so that **real PII never reaches the cloud LLM**.
+
+**Data flow:**
+
+```
+┌─────────────────────────────────────────────────────┐
+│  Your infrastructure (on-prem / VPC)                │
+│                                                     │
+│  Real data ──→ Regex detection (in-process)         │
+│            ──→ Local LLM detection (Ollama, local)  │
+│            ──→ Fake replacement (in-process)         │
+│                        │                            │
+│                        ▼                            │
+│              Masked data (fakes only)               │
+└────────────────────────┬────────────────────────────┘
+                         │ only fake data crosses this boundary
+                         ▼
+               ┌──────────────────┐
+               │  Cloud LLM API   │
+               │  (Claude, GPT)   │
+               └──────────────────┘
+```
+
+- **Detection is local.** Regex runs in-process. The LLM detector calls a model on your machine or your private network — never a cloud API.
+- **The bijective map is sensitive.** It maps real values to fakes — treat it like the data itself. Encrypt at rest, scope per session, and control access. Use `proxy.getMap().serialize()` for persistence; the format is a JSON array of `[real, fake]` pairs.
+- **Unmask is deterministic.** Same map always produces the same reversal. No network calls, no side effects.
+- **Round-trip integrity.** Every `mask()` → `unmask()` cycle restores the original text exactly. This is tested on every commit.
+
+**What pii-proxy does NOT do:**
+- It does not guarantee 100% PII detection — regex has known patterns, the LLM layer catches most names/orgs/locations, but novel entity types may slip through. Defense in depth is recommended.
+- It does not encrypt the map for you — integrate with your existing secrets management (Vault, KMS, encrypted storage).
+- It does not log or audit automatically — call `proxy.getMap().entries()` to inspect or log what was masked per session.
+
 ## Persistence
 
 Save and restore the map across sessions:
@@ -246,12 +288,14 @@ bun run examples/anthropic-agent.ts
 
 Detection rates on a realistic clinical patient record containing 10 PII entities (names, DOB, medical record number, insurance ID, organization, address, email, phone). Regex detectors handle email + phone in all configurations — the LLM layer adds semantic entity detection.
 
-| Model | Size | Entities detected | Notes |
-|---|---|---|---|
-| Regex only | 0 | 2/10 | Email + phone only — no names, orgs, or IDs |
-| + `qwen3:0.6b` | 522 MB | 6/10 | Catches patient name, DOB, insurance, address. Misses doctor names, org, medical record |
-| + `llama3.2` | 2.0 GB | 3/10 | Poor structured output — mostly finds just the patient name |
-| **+ `qwen3:1.7b`** | **1.4 GB** | **9/10** | **Catches all patient PII, org, address, medical record. Misses one buried doctor name** |
+| Model | Size | Entities detected | Latency | Notes |
+|---|---|---|---|---|
+| Regex only | 0 | 2/10 | <1ms | Email + phone only — no names, orgs, or IDs |
+| + `qwen3:0.6b` | 522 MB | 6/10 | ~15s | Catches patient name, DOB, insurance, address. Misses doctor names, org, medical record |
+| + `llama3.2` | 2.0 GB | 3/10 | ~10s | Poor structured output — mostly finds just the patient name |
+| **+ `qwen3:1.7b`** | **1.4 GB** | **9/10** | **~30s** | **Catches all patient PII, org, address, medical record. Misses one buried doctor name** |
+
+Latency measured on Apple M-series. First run includes model load (~5s); subsequent calls are faster. Regex-only mode is instant.
 
 **Recommendation:** `qwen3:1.7b` is the default — best accuracy-to-size ratio. All models produce **perfect round-trip** (unmask restores the original text exactly).
 
@@ -266,6 +310,19 @@ Address: Hauptstraße 42, 68161 Mannheim, Germany
 Referred by Dr. Anika Hoffmann, Hausarztpraxis Mannheim.
 ```
 
+## Comparison with alternatives
+
+| | pii-proxy | Presidio | Private AI | Nightfall |
+|---|---|---|---|---|
+| Detection | Regex + local LLM | Regex + spaCy NER | Cloud API | Cloud API |
+| Data leaves your infra | **No** | No | Yes | Yes |
+| Replacement strategy | Plausible fakes (LLM-friendly) | Tokens (`<PERSON>`) | Tokens | Tokens |
+| LLM reasoning quality | Preserved | Degraded | Degraded | Degraded |
+| Round-trip unmask | Yes | No | No | No |
+| Setup | `npm install` + Ollama | Python + models | API key | API key |
+| Custom entity types | Yes (pluggable detectors) | Yes (custom recognizers) | Limited | Limited |
+| License | MIT | MIT | Commercial | Commercial |
+
 ## Roadmap
 
 - [x] **v0.1** — Regex detection, faker replacement, bijective round-trip
@@ -276,4 +333,4 @@ Referred by Dr. Anika Hoffmann, Hausarztpraxis Mannheim.
 
 ## License
 
-MIT
+MIT — built by [Daslab](https://github.com/daslabhq).
