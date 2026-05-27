@@ -25,7 +25,7 @@ import { PrivacyProxy } from 'pii-proxy';
 const proxy = new PrivacyProxy();
 
 // Mask PII with plausible fakes
-const masked = proxy.mask(
+const masked = await proxy.mask(
   "Ship order to alex@example.com, tracking AETH0000345323DY"
 );
 // → "Ship order to alex@johnson.net, tracking BFUI0000482918EZ"
@@ -37,40 +37,90 @@ const real = proxy.unmask(llmResponse);
 // "I'll notify alex@johnson.net" → "I'll notify alex@example.com"
 ```
 
+## Local LLM detection
+
+Regex catches emails, IPs, tracking numbers. But what about `"Patient: Marcus Weber"`? That's a name — no regex will reliably find it.
+
+**v0.2** adds pluggable detection with a local LLM layer. A model running on your machine (via [Ollama](https://ollama.com)) detects names, organizations, locations, and domain-specific entities. The PII detection itself never leaves your infrastructure.
+
+```typescript
+import { PrivacyProxy } from 'pii-proxy';
+
+// Regex detectors + local LLM via Ollama
+const proxy = PrivacyProxy.withLocalLlm({ model: 'qwen3:1.7b' });
+
+const masked = await proxy.mask(
+  "Patient: Marcus Weber, treated by Dr. Sarah Chen at Universitätsklinikum Heidelberg"
+);
+// → "Patient: James Thompson, treated by Dr. Emily Rodriguez at Cleveland Clinic"
+```
+
+Setup:
+```bash
+# Install Ollama
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Pull a model (qwen3:1.7b is fast and great for entity detection, ~1.4GB)
+ollama pull qwen3:1.7b
+```
+
+### Layered pipeline
+
+Detection runs in layers — fast regex first, then LLM for what regex can't catch:
+
+```
+Text ──→ [Regex Layer] ──→ [Local LLM Layer] ──→ Deduplicated detections
+           emails            person names
+           phones             organizations
+           IPs                locations
+           UUIDs              medical records
+           credit cards       insurance IDs
+           tracking #s        custom entities
+```
+
+Overlapping detections are deduplicated automatically (regex wins ties).
+
 ## How it works
 
-1. **Detect** — regex-based detectors find emails, tracking numbers, IPs, UUIDs, credit cards, phone numbers, and URLs with tokens.
-2. **Replace** — each entity is replaced with a plausible fake of the same type (an email becomes another email, a tracking number keeps the same format).
+1. **Detect** — layered pipeline finds PII entities (regex + optional local LLM).
+2. **Replace** — each entity is replaced with a plausible fake of the same type (an email becomes another email, a name becomes another name).
 3. **Map** — a bijective map ensures the same real value always maps to the same fake, and vice versa. Consistent within a session, reversible at any time.
 
 ```
-Real:   "Contact alex@example.com about AETH0000345323DY"
+Real:   "Contact Marcus Weber at marcus@example.com"
          ↓ mask()
-Fake:   "Contact alex@johnson.net about BFUI0000482918EZ"
+Fake:   "Contact James Thompson at cornell62@hotmail.com"
          ↓ send to LLM → get response
-LLM:    "I've emailed alex@johnson.net about the shipment"
+LLM:    "I've drafted an email to James Thompson"
          ↓ unmask()
-Real:   "I've emailed alex@example.com about the shipment"
+Real:   "I've drafted an email to Marcus Weber"
 ```
 
 ## Entity types
 
 | Type | Detection | Fake replacement |
 |---|---|---|
-| Email | `user@domain.com` | Realistic fake email |
-| Phone | `+1-234-567-8901` | Format-preserving fake |
-| Credit card | Luhn-validated numbers | Valid fake card number |
-| IP address | IPv4 addresses | Random valid IP |
-| UUID | Standard UUID format | Random UUID |
-| URL | URLs with query params/tokens | Sanitized URL |
-| Tracking number | UPS, USPS, DHL, AliExpress, etc. | Format-preserving fake |
+| Email | Regex | Realistic fake email |
+| Phone | Regex | Format-preserving fake |
+| Credit card | Regex + Luhn | Valid fake card number |
+| IP address | Regex | Random valid IP |
+| UUID | Regex | Random UUID |
+| URL | Regex | Sanitized URL |
+| Tracking number | Regex (UPS, USPS, DHL, etc.) | Format-preserving fake |
+| Person name | Local LLM | Faker name |
+| Organization | Local LLM | Faker company |
+| Location | Local LLM | Faker address/city |
+| Date of birth | Local LLM | Format-preserving fake date |
+| Medical record | Local LLM | Format-preserving fake |
+| Insurance ID | Local LLM | Format-preserving fake |
+| *Custom* | Local LLM | Format-preserving fallback |
 
 ## Structured data
 
 Mask entire objects (e.g., tool call inputs):
 
 ```typescript
-const { masked } = proxy.maskObject({
+const { masked } = await proxy.maskObject({
   to: "alex@example.com",
   subject: "Order update",
   body: "Tracking: AETH0000345323DY",
@@ -84,6 +134,24 @@ const { masked } = proxy.maskObject({
 
 // Reverse everything
 const original = proxy.unmaskObject(masked);
+```
+
+## Custom detectors
+
+Bring your own detection logic — any object with a `detect(text)` method works:
+
+```typescript
+const proxy = new PrivacyProxy({
+  detectors: [
+    ...defaultDetectors,
+    {
+      async detect(text) {
+        // Your custom logic — call an API, run a model, use a dictionary
+        return [{ type: 'custom_id', value: 'ABC-123', start: 10, end: 17 }];
+      }
+    }
+  ]
+});
 ```
 
 ## Persistence
@@ -101,43 +169,28 @@ proxy2.loadMap(await redis.get('pii-session:123'));
 proxy2.unmask(text); // works with the same mappings
 ```
 
-## Example: Anthropic SDK integration
+## Examples
 
-Full round-trip — mask user data, send to Claude, unmask the response for your database ([examples/anthropic-agent.ts](examples/anthropic-agent.ts)):
+### Health data with local LLM ([examples/health-data.ts](examples/health-data.ts))
 
-```typescript
-import Anthropic from '@anthropic-ai/sdk';
-import { PrivacyProxy } from 'pii-proxy';
+Full round-trip — local LLM detects patient names and providers, Claude analyzes the masked record, unmask restores real data for the EHR:
 
-const proxy = new PrivacyProxy();
-const client = new Anthropic();
+```bash
+export ANTHROPIC_API_KEY=sk-...
+bun run examples/health-data.ts
+```
 
-const userEmail = {
-  from: 'alex@example.com',
-  body: 'Tracking number is AETH0000345323DY. Call me at +49 170 1234567.',
-};
+### Anthropic SDK integration ([examples/anthropic-agent.ts](examples/anthropic-agent.ts))
 
-// Mask before sending to Claude
-const { masked } = proxy.maskObject(userEmail);
-// masked.from → "cornell62@hotmail.com"
-// masked.body → "Tracking number is FCRQ6925552830IZ. Call me at +381.714.0024 x10865."
-
-const response = await client.messages.create({
-  model: 'claude-sonnet-4-20250514',
-  max_tokens: 512,
-  messages: [{ role: 'user', content: `Extract data from: ${JSON.stringify(masked)}` }],
-});
-
-// Claude responds with fake values → unmask to get real values for DB
-const real = proxy.unmask(response.content[0].text);
-// "cornell62@hotmail.com" → "alex@example.com"
-// "FCRQ6925552830IZ" → "AETH0000345323DY"
+```bash
+export ANTHROPIC_API_KEY=sk-...
+bun run examples/anthropic-agent.ts
 ```
 
 ## Roadmap
 
 - [x] **v0.1** — Regex detection, faker replacement, bijective round-trip
-- [ ] **v0.2** — Pluggable entity detection — bring your own detectors (local LLM, Presidio NER, custom regex). Layered pipeline: fast regex first, LLM for names/locations/domain-specific entities
+- [x] **v0.2** — Pluggable entity detection — bring your own detectors (local LLM, custom regex). Layered pipeline: fast regex first, LLM for names/locations/domain-specific entities
 - [ ] **v0.3** — Tool-aware selective masking (keep location real for hotel search, mask for email)
 - [ ] **v0.4** — Persistent map backends (Redis, SQLite)
 - [ ] **v0.5** — Anthropic/OpenAI SDK middleware (drop-in agent integration)

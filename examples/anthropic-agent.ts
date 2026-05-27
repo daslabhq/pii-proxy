@@ -33,7 +33,7 @@ console.log();
 
 // ─── Mask before sending to the LLM ────────────────────────────
 
-const { masked, detections } = proxy.maskObject(userEmail);
+const { masked, detections } = await proxy.maskObject(userEmail);
 
 console.log('── Masked (what Claude sees) ──');
 console.log(JSON.stringify(masked, null, 2));

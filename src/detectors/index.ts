@@ -1,32 +1,13 @@
-/**
- * PII entity detectors — regex-based for v0.1.
- *
- * Each detector finds entities of a specific type in text and returns
- * their positions. Detectors are ordered by specificity (most specific first)
- * to avoid overlapping matches.
- */
-
 export interface Detection {
-  type: EntityType;
+  type: string;
   value: string;
   start: number;
   end: number;
 }
 
-export type EntityType =
-  | 'email'
-  | 'phone'
-  | 'credit_card'
-  | 'ip_address'
-  | 'uuid'
-  | 'url'
-  | 'tracking_number'
-  | 'date'
-  | 'address';
-
 export interface Detector {
-  type: EntityType;
-  detect(text: string): Detection[];
+  type?: string;
+  detect(text: string): Detection[] | Promise<Detection[]>;
 }
 
 // ─── Email ──────────────────────────────────────────────────────
@@ -44,10 +25,8 @@ const emailDetector: Detector = {
 const phoneDetector: Detector = {
   type: 'phone',
   detect(text) {
-    // International and common formats: +1-234-567-8901, (234) 567-8901, 234.567.8901
     const re = /(?<!\w)(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{2,4}\)?[-.\s]?)?\d{3,4}[-.\s]?\d{4}(?!\w)/g;
     const candidates = matchAll(re, text, 'phone');
-    // Filter: must have at least 7 digits total
     return candidates.filter(d => (d.value.match(/\d/g) || []).length >= 7);
   },
 };
@@ -57,7 +36,6 @@ const phoneDetector: Detector = {
 const creditCardDetector: Detector = {
   type: 'credit_card',
   detect(text) {
-    // 13-19 digit numbers, optionally separated by spaces or dashes
     const re = /\b(?:\d[ -]*?){13,19}\b/g;
     const candidates = matchAll(re, text, 'credit_card');
     return candidates.filter(d => luhnCheck(d.value.replace(/\D/g, '')));
@@ -84,7 +62,6 @@ function luhnCheck(num: string): boolean {
 const ipDetector: Detector = {
   type: 'ip_address',
   detect(text) {
-    // IPv4
     const re = /\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b/g;
     return matchAll(re, text, 'ip_address');
   },
@@ -105,7 +82,6 @@ const uuidDetector: Detector = {
 const urlDetector: Detector = {
   type: 'url',
   detect(text) {
-    // Only match URLs that likely contain sensitive tokens (have query params or long paths)
     const re = /https?:\/\/[^\s"'<>]+[?&][^\s"'<>]+/g;
     return matchAll(re, text, 'url');
   },
@@ -116,7 +92,6 @@ const urlDetector: Detector = {
 const trackingDetector: Detector = {
   type: 'tracking_number',
   detect(text) {
-    // Common carrier formats
     const patterns = [
       /\b1Z[A-Z0-9]{16}\b/g,                           // UPS
       /\b(?:AETH|AP|LEXPU)\d{10,}\w*\b/g,              // AliExpress / Cainiao
@@ -135,9 +110,9 @@ const trackingDetector: Detector = {
   },
 };
 
-// ─── Helpers ─────────────────────────────────────────────��──────
+// ─── Helpers ────────────────────────────────────────────────────
 
-function matchAll(re: RegExp, text: string, type: EntityType): Detection[] {
+function matchAll(re: RegExp, text: string, type: string): Detection[] {
   const results: Detection[] = [];
   let m;
   while ((m = re.exec(text)) !== null) {
@@ -151,7 +126,6 @@ function matchAll(re: RegExp, text: string, type: EntityType): Detection[] {
   return results;
 }
 
-/** All built-in detectors, ordered by specificity (most specific first). */
 export const defaultDetectors: Detector[] = [
   emailDetector,
   creditCardDetector,
@@ -162,14 +136,11 @@ export const defaultDetectors: Detector[] = [
   phoneDetector,
 ];
 
-/**
- * Run all detectors on a text, removing overlapping detections
- * (earlier/more-specific detectors win).
- */
-export function detectAll(text: string, detectors: Detector[] = defaultDetectors): Detection[] {
+export async function detectAll(text: string, detectors: Detector[] = defaultDetectors): Promise<Detection[]> {
   const allDetections: Detection[] = [];
   for (const detector of detectors) {
-    allDetections.push(...detector.detect(text));
+    const results = await detector.detect(text);
+    allDetections.push(...results);
   }
 
   // Sort by start position, then by length (longer match wins ties)
