@@ -12,11 +12,13 @@ Your data ──→ [pii-proxy] ──→ LLM sees only fake data ──→ [pii
 
 Works with Node.js, Bun, and any OpenAI-compatible API (Claude, GPT, local models).
 
+**Local detection.** Fine-tuned BERT: **94.2% F1, 9ms/record** on the NVIDIA Nemotron-PII healthcare benchmark — beats every cloud LLM at 1/278th the latency, zero ongoing cost. [Details](#benchmarks).
+
 ## Why
 
-Your AI agent processes patient records, insurance claims, customer data. You don't want real names, emails, and ID numbers hitting Claude or GPT. But token-based masking (`PERSON_1`, `EMAIL_2`) degrades model quality — LLMs reason poorly over meaningless tokens.
+Your AI agent processes patient records, insurance claims, customer data. You don't want real names, emails, and ID numbers hitting Claude or GPT. But token-based masking (`PERSON_1`, `EMAIL_2`) degrades fluency — LLMs lose track of meaningless placeholders across long contexts.
 
-**pii-proxy** replaces PII with plausible fake values — the LLM sees realistic data and reasons correctly. A bijective map lets you reverse everything when writing back.
+**pii-proxy** replaces PII with plausible fake values — the model parses realistic-looking text fluently, and a bijective map reverses every fake when you write back. (Fluency, not correctness — see [When this works](#when-this-works-and-when-it-doesnt) for failure modes.)
 
 ## Install
 
@@ -116,7 +118,7 @@ const proxy4 = new PrivacyProxy({
 });
 ```
 
-Detectors run in order. Each returns `Detection[]` (or `Promise<Detection[]>` for async). Overlapping detections are resolved by position — earlier detectors win ties.
+**Detector order = priority.** Each detector returns `Detection[]` (or `Promise<Detection[]>` for async). The first detector to claim a span wins; later detectors that overlap that span are dropped. Put your most-specific detectors first.
 
 ## How it works
 
@@ -133,6 +135,22 @@ LLM:    "I've drafted an email to James Thompson"
          ↓ unmask()
 Real:   "I've drafted an email to Marcus Weber"
 ```
+
+## When this works (and when it doesn't)
+
+Like-for-like replacement preserves **fluency, not correctness**. The model parses realistic-looking text without losing entity tracking over many opaque tokens — but it's reasoning about the *fake*, not the real.
+
+**Works well for:**
+- Drafting, replying, summarization, extraction, routing
+- Multi-entity tracking where opaque `PERSON_1` tokens degrade attention
+- Any task where the entity is a *referent*, not analyzed for its surface properties
+
+**Breaks (silently) for:**
+- **Surface inference.** The model infers from the fake's surface — locale, gender, demographics. `Marcus Weber` → `Mei Chen` is a legal swap; "draft this in the patient's likely language" picks the wrong one.
+- **Cross-entity coherence.** `Marcus Weber` and `Anna Weber` get severed; the model loses the family relationship.
+- **Generated new PII.** The model can invent associated names ("Dr. Schmidt") that were never in the map — unmask leaves them in, and hallucinated PII leaks through.
+
+If your task leans on entity surface properties, treat pii-proxy as a fluency layer, not a correctness layer. For high-stakes inference, defense in depth: pii-proxy + structured output schema + post-hoc validation.
 
 ## Entity types
 
@@ -253,16 +271,18 @@ pii-proxy is designed so that **real PII never reaches the cloud LLM**.
 
 ## Persistence
 
+> **⚠ The map IS the PII.** It maps every real value to its fake — anyone with the map can reverse every masked record. Encrypt before storing. See [Security model](#security-model).
+
 Save and restore the map across sessions:
 
 ```typescript
-// Save
+// Save — encrypt the serialized map before storing
 const data = proxy.getMap().serialize();
-await redis.set('pii-session:123', data);
+await redis.set('pii-session:123', encrypt(data));  // bring your own encryption (Vault, KMS, libsodium)
 
 // Restore in a new process
 const proxy2 = new PrivacyProxy();
-proxy2.loadMap(await redis.get('pii-session:123'));
+proxy2.loadMap(decrypt(await redis.get('pii-session:123')));
 proxy2.unmask(text); // works with the same mappings
 ```
 
@@ -322,13 +342,10 @@ See [`experiments/README.md`](experiments/README.md) for the full matrix, reprod
 
 | | pii-proxy | Presidio | Private AI | Nightfall |
 |---|---|---|---|---|
-| Detection | Regex + local LLM | Regex + spaCy NER | Cloud API | Cloud API |
 | Data leaves your infra | **No** | No | Yes | Yes |
-| Replacement strategy | Plausible fakes (LLM-friendly) | Tokens (`<PERSON>`) | Tokens | Tokens |
-| LLM reasoning quality | Preserved | Degraded | Degraded | Degraded |
-| Round-trip unmask | Yes | No | No | No |
-| Setup | `npm install` + Ollama | Python + models | API key | API key |
-| Custom entity types | Yes (pluggable detectors) | Yes (custom recognizers) | Limited | Limited |
+| Round-trip unmask | **Yes** | No | No | No |
+| Replacement | Plausible fakes | Tokens (`<PERSON>`) | Tokens | Tokens |
+| Custom entity types | Pluggable detectors | Custom recognizers | Limited | Limited |
 | License | MIT | MIT | Commercial | Commercial |
 
 ## Roadmap
