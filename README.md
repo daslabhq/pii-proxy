@@ -284,31 +284,39 @@ export ANTHROPIC_API_KEY=sk-...
 bun run examples/anthropic-agent.ts
 ```
 
-## Model benchmarks
+## Benchmarks
 
-Detection rates on a realistic clinical patient record containing 10 PII entities (names, DOB, medical record number, insurance ID, organization, address, email, phone). Regex detectors handle email + phone in all configurations — the LLM layer adds semantic entity detection.
+Full evaluation on NVIDIA's [Nemotron-PII](https://huggingface.co/datasets/nvidia/Nemotron-PII) healthcare dataset (725 records, 4,703 labeled spans). All scripts in [`experiments/`](experiments/README.md).
 
-| Model | Size | Entities detected | Latency | Notes |
+**Compiled fine-tuned BERT beats every cloud LLM at 1/278th the latency and zero ongoing cost.**
+
+| Method | F1 | Latency/record | Size | Cost per 1M records |
 |---|---|---|---|---|
-| Regex only | 0 | 2/10 | <1ms | Email + phone only — no names, orgs, or IDs |
-| + `qwen3:0.6b` | 522 MB | 6/10 | ~15s | Catches patient name, DOB, insurance, address. Misses doctor names, org, medical record |
-| + `llama3.2` | 2.0 GB | 3/10 | ~10s | Poor structured output — mostly finds just the patient name |
-| **+ `qwen3:1.7b`** | **1.4 GB** | **9/10** | **~30s** | **Catches all patient PII, org, address, medical record. Misses one buried doctor name** |
+| **Fine-tuned BERT (compiled)** | **94.2%** | **~9ms** | **50MB** | **$0** |
+| Claude Sonnet (proper prompt) | 92.5% | 2.5s | cloud | ~$3,500 |
+| GLiNER-PII (NVIDIA, zero-shot) | 91.5% | 280ms | 570MB | $0 |
+| BioBERT (biomedical fine-tune) | 91.9% | ~35ms | 108MB | $0 |
+| ClinicalBERT (clinical fine-tune) | 90.9% | ~27ms | 135MB | $0 |
+| qwen3.7-max (OpenRouter) | 83.3% | 23.6s | cloud | ~free |
+| qwen3:1.7b (local LLM tagger) | 6.6% | 15s | 1.4GB | $0 |
 
-Latency measured on Apple M-series. First run includes model load (~5s); subsequent calls are faster. Regex-only mode is instant.
+Training: 8 epochs, 10 minutes on Apple MPS, 580 train / 145 test split.
 
-**Recommendation:** `qwen3:1.7b` is the default — best accuracy-to-size ratio. All models produce **perfect round-trip** (unmask restores the original text exactly).
+Test entity F1 (fine-tuned BERT):
+- person_name: 99.5%, date_of_birth: 98.0%, insurance_id: 95.8%, medical_record: 93.5%, email: 94.7%, location: 84.9%
 
-Test input:
+**Key insight:** the compiled student model BEATS GLiNER-PII, the teacher model that labeled its training data. Aggregating over 580 examples lets BERT capture patterns the zero-shot model misses on individual records.
+
+**The pipeline:**
 ```
-Patient: Marcus Weber (DOB: 15.03.1987)
-MRN: MRN-2024-08391
-Provider: Dr. Sarah Chen, Universitätsklinikum Heidelberg
-Insurance: TK 109876543
-Contact: marcus.weber@gmail.com, +49 170 1234567
-Address: Hauptstraße 42, 68161 Mannheim, Germany
-Referred by Dr. Anika Hoffmann, Hausarztpraxis Mannheim.
+NVIDIA Nemotron-PII → fine-tune BERT (10 min) → 50MB compiled NER model (9ms)
+                                                  │
+                                                  ▼
+                                          plugs into pii-proxy
+                                          as a Detector
 ```
+
+See [`experiments/README.md`](experiments/README.md) for the full matrix, reproducibility instructions, and what we did NOT prove (real clinical notes still to come).
 
 ## Comparison with alternatives
 

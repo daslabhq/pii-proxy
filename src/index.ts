@@ -7,6 +7,7 @@ export { BijectiveMap } from './map.js';
 export { type Detection, type Detector, defaultDetectors } from './detectors/index.js';
 export { type Generator, generators, getGenerator } from './generators/index.js';
 export { LlmDetector, type LlmDetectorOptions } from './detectors/llm.js';
+export { learn, type LearnOptions, type LearnResult, type LearnedRecord, type LearnedSpan } from './learn.js';
 
 export interface MaskResult {
   text: string;

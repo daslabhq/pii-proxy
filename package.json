@@ -9,22 +9,45 @@
     ".": {
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./learn": {
+      "import": "./dist/learn.js",
+      "types": "./dist/learn.d.ts"
     }
+  },
+  "bin": {
+    "pii-proxy-learn": "./bin/learn.ts"
   },
   "scripts": {
     "build": "tsc",
     "test": "bun test",
+    "learn": "bun run bin/learn.ts",
     "prepublishOnly": "tsc"
   },
-  "files": ["dist", "README.md", "LICENSE"],
-  "keywords": ["pii", "privacy", "anonymization", "llm", "ai-agent", "masking", "gdpr"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pii",
+    "privacy",
+    "anonymization",
+    "llm",
+    "ai-agent",
+    "masking",
+    "gdpr"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/daslabhq/pii-proxy.git"
   },
   "dependencies": {
-    "@faker-js/faker": "^9.0.0"
+    "@faker-js/faker": "^9.0.0",
+    "gliner": "^0.0.19",
+    "onnxruntime-node": "^1.26.0",
+    "onnxruntime-web": "^1.26.0"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
