@@ -1,0 +1,33 @@
+/Users/fm/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+======================================================================
+LABEL-SENSITIVITY CHECK — our fine-tuned model
+======================================================================
+Model: experiments/003-finetune-gliner-small/model/checkpoint-720
+Test set: 100 records
+
+[A] Title Case ('Person Name', 'Medical Record') — what we TRAINED on
+Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
+/Users/fm/Library/Python/3.9/lib/python/site-packages/gliner/data_processing/processor.py:395: UserWarning: Sentence of length 444 has been truncated to 384
+  batch = [self.preprocess_example(b["tokenized_text"], b[key], class_to_ids) for b in batch_list]
+/Users/fm/Library/Python/3.9/lib/python/site-packages/gliner/data_processing/processor.py:395: UserWarning: Sentence of length 432 has been truncated to 384
+  batch = [self.preprocess_example(b["tokenized_text"], b[key], class_to_ids) for b in batch_list]
+    F1: 95.5% (P: 95.4%, R: 95.6%) — TP/FP/FN: 563/27/26
+
+[B] snake_case ('person_name', 'medical_record') — Nemotron native
+    F1: 90.9% (P: 92.1%, R: 89.6%) — TP/FP/FN: 528/45/61
+
+[C] Natural language ('person name', 'medical record')
+    F1: 93.9% (P: 93.9%, R: 93.9%) — TP/FP/FN: 553/36/36
+
+======================================================================
+SUMMARY — our model
+======================================================================
+  Title Case (trained on):  95.5% F1  ← what we previously reported
+  snake_case (Nemotron):    90.9% F1
+  Natural language:         93.9% F1
+
+  Best: Title-case at 95.5%
+
+  For comparison:
+  nvidia/gliner-PII best (snake_case):  97.2% F1
