@@ -1,0 +1,31 @@
+{
+  "experiment": "003-finetune-gliner-small",
+  "model": "urchade/gliner_small-v2.1",
+  "train_size": 575,
+  "eval_size": 50,
+  "test_size": 100,
+  "epochs": 5,
+  "lr": 5e-06,
+  "others_lr": 5e-06,
+  "batch_size": 4,
+  "seed": 42,
+  "baseline_zero_shot": {
+    "f1": 0.5477707006369428,
+    "precision": 0.5901960784313726,
+    "recall": 0.5110356536502547,
+    "tp": 301,
+    "fp": 209,
+    "fn": 288,
+    "avg_ms": 114.48409505000016
+  },
+  "fine_tuned": {
+    "f1": 0.9550466497031382,
+    "precision": 0.9542372881355933,
+    "recall": 0.9558573853989814,
+    "tp": 563,
+    "fp": 27,
+    "fn": 26,
+    "avg_ms": 106.33865583999867
+  },
+  "train_time_seconds": 890.519613981247
+}
