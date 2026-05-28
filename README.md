@@ -12,7 +12,7 @@ Your data ──→ [pii-proxy] ──→ LLM sees only fake data ──→ [pii
 
 Works with Node.js, Bun, and any OpenAI-compatible API (Claude, GPT, local models).
 
-**Local detection.** Fine-tuned BERT: **94.2% F1, 9ms/record** on the NVIDIA Nemotron-PII healthcare benchmark — beats every cloud LLM at 1/278th the latency, zero ongoing cost. [Details](#benchmarks).
+**Local detection.** Fine-tuned BERT classifier: **93.9% F1, 26ms/record** on the NVIDIA Nemotron-PII healthcare benchmark. Fine-tuned GLiNER-small: **95.5% F1, 126ms/record** (zero-shot capable). Both run on a CPU with no cloud dependency. [Reproducible benchmarks →](experiments/)
 
 ## Why
 
@@ -306,37 +306,33 @@ bun run examples/anthropic-agent.ts
 
 ## Benchmarks
 
-Full evaluation on NVIDIA's [Nemotron-PII](https://huggingface.co/datasets/nvidia/Nemotron-PII) healthcare dataset (725 records, 4,703 labeled spans). All scripts in [`experiments/`](experiments/README.md).
+Full evaluation on NVIDIA's [Nemotron-PII](https://huggingface.co/datasets/nvidia/Nemotron-PII) healthcare subset (725 records, 4,703 labeled spans, same held-out 100-record test set across all methods). Scripts in [`experiments/`](experiments/).
 
-**Compiled fine-tuned BERT beats every cloud LLM at 1/278th the latency and zero ongoing cost.**
+**Honest summary:** NVIDIA's `gliner-PII` (their flagship, 1.7GB) is the strongest detector at **97.2% F1**. Our fine-tuned `gliner_small-v2.1` (582MB, 3x smaller) reaches **95.5% F1** and is 1.7x faster. Our fine-tuned BERT classifier is the fastest at **26ms/record, 93.9% F1**.
 
-| Method | F1 | Latency/record | Size | Cost per 1M records |
+| Method | F1 | Latency/record | Weights | Zero-shot capable |
 |---|---|---|---|---|
-| **Fine-tuned BERT (compiled)** | **94.2%** | **~9ms** | **50MB** | **$0** |
-| Claude Sonnet (proper prompt) | 92.5% | 2.5s | cloud | ~$3,500 |
-| GLiNER-PII (NVIDIA, zero-shot) | 91.5% | 280ms | 570MB | $0 |
-| BioBERT (biomedical fine-tune) | 91.9% | ~35ms | 108MB | $0 |
-| ClinicalBERT (clinical fine-tune) | 90.9% | ~27ms | 135MB | $0 |
-| qwen3.7-max (OpenRouter) | 83.3% | 23.6s | cloud | ~free |
-| qwen3:1.7b (local LLM tagger) | 6.6% | 15s | 1.4GB | $0 |
+| **nvidia/gliner-PII** (zero-shot, native labels) | **97.2%** | 210ms | 1699MB | Yes |
+| Our fine-tuned `gliner_small-v2.1` ([exp 003](experiments/003-finetune-gliner-small/)) | 95.5% | 126ms | 582MB | Yes |
+| Our fine-tuned BERT classifier ([exp 002](experiments/clean_benchmark.py)) | 93.9% | 26ms | 438MB | No |
+| Claude Sonnet (proper prompt) | 92.5% | 2.5s | cloud API | — |
+| `gliner_small-v2.1` (zero-shot baseline) | 54.8% | 115ms | 582MB | Yes |
 
-Training: 8 epochs, 10 minutes on Apple MPS, 580 train / 145 test split.
+All numbers from independent verification on the same test set (fingerprint `ff2fa10db2eb0b55`, zero train/test leakage).
 
-Test entity F1 (fine-tuned BERT):
-- person_name: 99.5%, date_of_birth: 98.0%, insurance_id: 95.8%, medical_record: 93.5%, email: 94.7%, location: 84.9%
+**Three valid optima depending on your need:**
 
-**Key insight:** the compiled student model BEATS GLiNER-PII, the teacher model that labeled its training data. Aggregating over 580 examples lets BERT capture patterns the zero-shot model misses on individual records.
-
-**The pipeline:**
 ```
-NVIDIA Nemotron-PII → fine-tune BERT (10 min) → 50MB compiled NER model (9ms)
-                                                  │
-                                                  ▼
-                                          plugs into pii-proxy
-                                          as a Detector
+Need maximum accuracy?         nvidia/gliner-PII (97.2%, 210ms, 1.7GB)
+Need fast + accurate + small?  Our fine-tuned gliner_small (95.5%, 126ms, 582MB)
+Need sub-30ms latency?         Our fine-tuned BERT (93.9%, 26ms, 438MB)
 ```
 
-See [`experiments/README.md`](experiments/README.md) for the full matrix, reproducibility instructions, and what we did NOT prove (real clinical notes still to come).
+**The compile pipeline works.** Fine-tuning `gliner_small-v2.1` on just 575 records of healthcare PII (15 min on Apple MPS) takes the base model from 54.8% → 95.5% F1. Within 1.7pp of NVIDIA's flagship using 1/3 the parameters.
+
+**Methodology note:** GLiNER bi-encoder models are sensitive to query string choice. NVIDIA's `gliner-PII` scores 90.4% with natural-language labels ("person name") and 97.2% with native training labels ("first_name"). Always benchmark with the model's native vocabulary. See [`verify_labels.py`](experiments/003-finetune-gliner-small/verify_labels.py).
+
+See [`experiments/`](experiments/) for full reproducibility — every script, every result, every caveat.
 
 ## Comparison with alternatives
 

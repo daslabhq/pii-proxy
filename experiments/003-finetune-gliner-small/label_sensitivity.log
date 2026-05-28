@@ -1,0 +1,35 @@
+/Users/fm/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+======================================================================
+LABEL-SENSITIVITY CHECK — nvidia/gliner-PII
+======================================================================
+Testing if NVIDIA's score depends on query label string choice
+
+Test set: 100 records, 589 gold entities
+
+Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]/Users/fm/Library/Python/3.9/lib/python/site-packages/huggingface_hub/file_download.py:949: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 34314.63it/s]
+[A] Natural language labels ('person name', 'medical record number', ...)
+Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
+/Users/fm/Library/Python/3.9/lib/python/site-packages/gliner/data_processing/processor.py:395: UserWarning: Sentence of length 444 has been truncated to 384
+  batch = [self.preprocess_example(b["tokenized_text"], b[key], class_to_ids) for b in batch_list]
+/Users/fm/Library/Python/3.9/lib/python/site-packages/gliner/data_processing/processor.py:395: UserWarning: Sentence of length 432 has been truncated to 384
+  batch = [self.preprocess_example(b["tokenized_text"], b[key], class_to_ids) for b in batch_list]
+    F1: 90.4% (P: 92.2%, R: 88.6%)
+    TP/FP/FN: 522/44/67
+
+[B] Snake_case Nemotron labels ('first_name', 'medical_record_number', ...)
+    F1: 97.2% (P: 96.5%, R: 98.0%)
+    TP/FP/FN: 577/21/12
+
+======================================================================
+RESULT
+======================================================================
+  Natural language (A):  90.4% F1
+  Native labels (B):     97.2% F1
+  Delta:                 +6.8pp
+
+  → NVIDIA scored 6.8pp HIGHER with its native labels.
+  → Our previous comparison underrated their model.
+  → Best NVIDIA score: 97.2% vs our 95.5% = -1.7pp

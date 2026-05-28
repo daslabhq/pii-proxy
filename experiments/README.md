@@ -1,23 +1,23 @@
-# PII Detection Benchmark
+# PII Detection Benchmarks
 
-Hard numbers from running real models on NVIDIA's [Nemotron-PII](https://huggingface.co/datasets/nvidia/Nemotron-PII) healthcare dataset (725 records, 4,703 labeled spans).
+Multiple experiments against NVIDIA's [Nemotron-PII](https://huggingface.co/datasets/nvidia/Nemotron-PII) healthcare subset (725 records, 4,703 labeled spans). Latest verified comparison on a shared held-out test set (100 records):
 
-## TL;DR
-
-Fine-tuned BERT (50MB, ~9ms) **beats Claude Sonnet, qwen3.7-max, and GLiNER-PII** on clinical PII detection — at 1/278th the latency and zero ongoing cost.
-
-| Method | F1 | Speed/record | Size | Cost (1M records) |
+| Method | F1 | Latency | Weights | Zero-shot |
 |---|---|---|---|---|
-| **Fine-tuned BERT (ours)** | **94.2%** | **~9ms** | **50MB** | **$0** |
-| Claude Sonnet (fixed prompt) | 92.5% | 2.5s | cloud | ~$3,500 |
-| GLiNER-PII (NVIDIA, zero-shot) | 91.5% | 280ms | 570MB | $0 |
-| BioBERT (biomedical fine-tune) | 91.9% | ~35ms | 108MB | $0 |
-| ClinicalBERT (clinical fine-tune) | 90.9% | ~27ms | 135MB | $0 |
-| qwen3.7-max (OpenRouter) | 83.3% | 23.6s | cloud | ~free |
-| Claude Sonnet (broken prompt) | 82.3% | 2.6s | cloud | ~$3,500 |
-| qwen3:1.7b (local LLM, our tagger v1) | 6.6% | 15s | 1.4GB | $0 |
+| **nvidia/gliner-PII (zero-shot, native labels)** | **97.2%** | 210ms | 1699MB | Yes |
+| Our fine-tuned `gliner_small-v2.1` | 95.5% | 126ms | 582MB | Yes |
+| Our fine-tuned BERT classifier | 93.9% | 26ms | 438MB | No |
+| Claude Sonnet (proper prompt) | 92.5% | 2.5s | cloud | — |
+| `gliner_small-v2.1` zero-shot (baseline) | 54.8% | 115ms | 582MB | Yes |
 
-All numbers on the same 20-record / 145-record splits. Reproducible via the scripts in this directory.
+All numbers from independent verification. NVIDIA's flagship is the most accurate; our fine-tuned models give a 3x smaller / 1.7x faster alternative within ~1.7pp of accuracy, plus a sub-30ms BERT option that sacrifices ~3pp F1 for 5x speed.
+
+## Per-experiment results
+
+- [`003-finetune-gliner-small/`](003-finetune-gliner-small/) — Fine-tune `gliner_small-v2.1`, 95.5% F1 (1.7pp behind NVIDIA, 3x smaller). **Includes label-sensitivity gotcha.**
+- [`clean_benchmark.py`](clean_benchmark.py) — Apples-to-apples comparison: BERT on gold labels (94%), BERT on GLiNER labels (87%), GLiNER zero-shot (90%).
+- [`finetune_ner.py`](finetune_ner.py) — Initial BERT classifier fine-tune.
+- [`full_benchmark.py`](full_benchmark.py) — Includes cloud LLM taggers (Sonnet, qwen3.7-max).
 
 ## The pipeline
 
