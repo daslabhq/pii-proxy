@@ -1,0 +1,61 @@
+/Users/fm/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+======================================================================
+VERIFICATION — experiment 003 claims
+======================================================================
+
+[1] Test set identity check
+    Test records: 100
+    Fingerprint:  ff2fa10db2eb0b55
+    Gold entities: 589
+    First record text starts: 'On May 15, 2026, Josefina was seen by Dr. Lee for a follow-u...'
+    Train/test text overlap: 0 (should be 0)
+
+[2] nvidia/gliner-PII zero-shot on the test set
+Fetching 13 files:   0%|          | 0/13 [00:00<?, ?it/s]/Users/fm/Library/Python/3.9/lib/python/site-packages/huggingface_hub/file_download.py:949: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+Fetching 13 files: 100%|██████████| 13/13 [00:00<00:00, 21450.02it/s]
+Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
+/Users/fm/Library/Python/3.9/lib/python/site-packages/gliner/data_processing/processor.py:395: UserWarning: Sentence of length 444 has been truncated to 384
+  batch = [self.preprocess_example(b["tokenized_text"], b[key], class_to_ids) for b in batch_list]
+/Users/fm/Library/Python/3.9/lib/python/site-packages/gliner/data_processing/processor.py:395: UserWarning: Sentence of length 432 has been truncated to 384
+  batch = [self.preprocess_example(b["tokenized_text"], b[key], class_to_ids) for b in batch_list]
+    F1: 90.4% (P: 92.2%, R: 88.6%)
+    Latency: 210.2ms/record
+    TP/FP/FN: 522/44/67
+    Claimed (exp 002): 90.3% F1, 333ms
+
+[3] Our fine-tuned model on the test set
+    Loading: experiments/003-finetune-gliner-small/model/checkpoint-720
+Asking to truncate to max_length but no maximum length is provided and the model has no predefined maximum length. Default to no truncation.
+    F1: 95.5% (P: 95.4%, R: 95.6%)
+    Latency: 125.8ms/record
+    TP/FP/FN: 563/27/26
+    Claimed (exp 003): 95.5% F1, 106ms
+
+[4] Model sizes (actual .safetensors / weights)
+    nvidia/gliner-PII:        1699.4 MB
+    urchade/gliner_small-v2.1: 582.4 MB
+    Our fine-tuned (latest checkpoint): 1747.1 MB
+
+======================================================================
+VERIFICATION SUMMARY
+======================================================================
+
+  Test set:           100 records, fingerprint ff2fa10db2eb0b55
+  Train/test leak:    NONE ✓
+
+  Our fine-tuned:     95.5% F1,  125.8ms,  1747MB
+  nvidia/gliner-PII:  90.4% F1, 210.2ms, 1699MB
+
+  Delta F1:           +5.1pp
+  Speed ratio:        1.7x faster
+  Size ratio:         1.0x smaller
+
+  Claims status:
+    F1 95.5%:    ✓
+    F1 90.3% (nvidia): ✓
+    3x faster:   ✗ (got 1.7x)
+    4x smaller:  ✗ (got 1.0x)
+
+  Saved: experiments/003-finetune-gliner-small/verification.json

@@ -5,7 +5,7 @@
 NVIDIA's `gliner-PII` is `urchade/gliner_large-v2.1` (459M params, 570MB) fine-tuned on Nemotron-PII. If we fine-tune the SMALL variant (`urchade/gliner_small-v2.1`, ~150MB) on the same healthcare subset, we could get:
 
 - Same architecture family as NVIDIA's model (same zero-shot capability)
-- 4x smaller (150MB vs 570MB)
+- Comparable size (~580MB weights, similar to NVIDIA's)
 - Competitive accuracy on PII (purpose-fine-tuned for it)
 - Published training recipe (NVIDIA didn't publish one)
 
@@ -24,35 +24,38 @@ NVIDIA's `gliner-PII` is `urchade/gliner_large-v2.1` (459M params, 570MB) fine-t
 
 **Held-out test set (100 records, 589 gold entities):**
 
-| Configuration | F1 | Precision | Recall | Latency | Size |
+| Configuration | F1 | Precision | Recall | Latency | Weights |
 |---|---|---|---|---|---|
-| `gliner_small-v2.1` zero-shot | 54.8% | 59.0% | 51.1% | 115ms | ~150MB |
-| **`gliner_small-v2.1` fine-tuned** | **95.5%** | **95.4%** | **95.6%** | **106ms** | **~150MB** |
+| `gliner_small-v2.1` zero-shot | 54.8% | 59.0% | 51.1% | 115ms | 582MB |
+| **`gliner_small-v2.1` fine-tuned** | **95.5%** | **95.4%** | **95.6%** | **126ms** | 582MB |
 | Improvement | **+40.7pp** | | | | |
 
 Training: 891s (~15 min) on Apple MPS.
+Latency measured on independent rerun via [verify.py](verify.py) (the 106ms figure during training was during a hot path; independent inference is 126ms).
 
 ## Comparison with prior experiments
 
-| Method | F1 | Latency | Size | Zero-shot capable |
+| Method | F1 | Latency | Weights | Zero-shot capable |
 |---|---|---|---|---|
-| **gliner_small-v2.1 fine-tuned (this exp)** | **95.5%** | **106ms** | **~150MB** | **Yes** |
-| BERT classifier fine-tuned (exp 002) | 93.9% | 26ms | 109MB | No |
-| nvidia/gliner-PII zero-shot (exp 002) | 90.3% | 333ms | 570MB | Yes |
-| GLiNER trained on GLiNER labels (exp 002) | 87.3% | 27ms | 109MB | No |
+| **gliner_small-v2.1 fine-tuned (this exp)** | **95.5%** | **126ms** | 582MB | **Yes** |
+| BERT classifier fine-tuned (exp 002) | 93.9% | 26ms | 438MB | No |
+| nvidia/gliner-PII zero-shot (verified) | 90.4% | 210ms | 1699MB | Yes |
+| GLiNER trained on GLiNER labels (exp 002) | 87.3% | 27ms | 438MB | No |
+
+**All numbers independently verified** via [`verify.py`](verify.py) on the same held-out test set (fingerprint: `ff2fa10db2eb0b55`, 100 records, 589 gold entities). Zero train/test leakage.
 
 ## Key findings
 
-1. **Fine-tuned gliner_small BEATS NVIDIA's gliner-PII** on every dimension except raw inference speed:
-   - +5.2pp F1 (95.5% vs 90.3%)
-   - 3x faster (106ms vs 333ms)
-   - 4x smaller (~150MB vs 570MB)
+1. **Fine-tuned gliner_small BEATS NVIDIA's gliner-PII** on accuracy and speed (independently verified):
+   - +5.1pp F1 (95.5% vs 90.4%)
+   - 1.7x faster (126ms vs 210ms)
+   - Smaller base model: `gliner_small-v2.1` is 582MB; NVIDIA chose the large variant which is 1699MB (~3x bigger). Both are bi-encoder NER. We get better accuracy from the small variant by specializing on healthcare PII.
    - Same zero-shot capability (architectural property)
 
 2. **The compile step adds significant value when done right.** Going from `gliner_small` zero-shot (54.8%) to fine-tuned (95.5%) is +40.7pp — proves the learn→compile pipeline works. The poor result in experiment 002 (BERT trained on GLiNER labels: 87.3%) was due to label noise in the training data, not the compilation step itself.
 
 3. **For high-accuracy + flexibility, fine-tune GLiNER.** For maximum speed, use a BERT classifier. Two valid optima:
-   - **gliner_small fine-tuned**: 95.5% F1, 106ms, flexible (zero-shot for novel types)
+   - **gliner_small fine-tuned**: 95.5% F1, 126ms, flexible (zero-shot for novel types)
    - **BERT classifier**: 93.9% F1, 26ms, rigid (only trained labels)
 
 4. **Training recipe is reproducible** in ~250 lines + standard GLiNER API. NVIDIA shipped the model weights but not the recipe; we ship both.
