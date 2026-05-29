@@ -1,23 +1,46 @@
 # PII Detection Benchmarks
 
-Multiple experiments against NVIDIA's [Nemotron-PII](https://huggingface.co/datasets/nvidia/Nemotron-PII) healthcare subset (725 records, 4,703 labeled spans). Latest verified comparison on a shared held-out test set (100 records):
+Multiple experiments against NVIDIA's [Nemotron-PII](https://huggingface.co/datasets/nvidia/Nemotron-PII) healthcare subset (725 records, 4,703 labeled spans). All numbers from the same held-out 100-record test set, independently verified.
 
-| Method | F1 | Latency | Weights | Zero-shot |
+**Latest truly fair comparison (experiment 004 — same labels, same vocabulary):**
+
+| Method | Fine F1 | Coarse F1 | Latency | Weights |
 |---|---|---|---|---|
-| **nvidia/gliner-PII (zero-shot, native labels)** | **97.2%** | 210ms | 1699MB | Yes |
-| Our fine-tuned `gliner_small-v2.1` | 95.5% | 126ms | 582MB | Yes |
-| Our fine-tuned BERT classifier | 93.9% | 26ms | 438MB | No |
-| Claude Sonnet (proper prompt) | 92.5% | 2.5s | cloud | — |
-| `gliner_small-v2.1` zero-shot (baseline) | 54.8% | 115ms | 582MB | Yes |
+| **nvidia/gliner-PII** | **96.2%** | **96.7%** | 211ms | 1699MB |
+| Our fine-tuned `gliner_small` (exp 004) | 94.9% | 96.1% | 144ms | 582MB |
+| Our BERT classifier (exp 002) | — | 93.9% | 26ms | 438MB |
+| Claude Sonnet (proper prompt) | — | 92.5% | 2.5s | cloud |
+| `gliner_small-v2.1` (zero-shot baseline) | 54.8% | — | 115ms | 582MB |
 
-All numbers from independent verification. NVIDIA's flagship is the most accurate; our fine-tuned models give a 3x smaller / 1.7x faster alternative within ~1.7pp of accuracy, plus a sub-30ms BERT option that sacrifices ~3pp F1 for 5x speed.
+NVIDIA's flagship leads by 1.3pp at fine granularity and 0.6pp at coarse. We trade that gap for 1.5x speed and 3x smaller base model. The BERT classifier is 5x faster again, at -2pp F1 and no zero-shot capability.
 
 ## Per-experiment results
 
-- [`003-finetune-gliner-small/`](003-finetune-gliner-small/) — Fine-tune `gliner_small-v2.1`, 95.5% F1 (1.7pp behind NVIDIA, 3x smaller). **Includes label-sensitivity gotcha.**
-- [`clean_benchmark.py`](clean_benchmark.py) — Apples-to-apples comparison: BERT on gold labels (94%), BERT on GLiNER labels (87%), GLiNER zero-shot (90%).
-- [`finetune_ner.py`](finetune_ner.py) — Initial BERT classifier fine-tune.
-- [`full_benchmark.py`](full_benchmark.py) — Includes cloud LLM taggers (Sonnet, qwen3.7-max).
+- [`004-finetune-fine-labels/`](004-finetune-fine-labels/) — Fine-tune `gliner_small` on FINE Nemotron labels (matches NVIDIA's training granularity). **Truly fair head-to-head.** 94.9% fine / 96.1% coarse.
+- [`003-finetune-gliner-small/`](003-finetune-gliner-small/) — Fine-tune on COARSE labels directly. 95.5% F1. Includes the **label-sensitivity gotcha** that nearly led us to publish overstated claims.
+- [`clean_benchmark.py`](clean_benchmark.py) — BERT classifier vs GLiNER zero-shot, identical test set.
+- [`finetune_ner.py`](finetune_ner.py) — Original BERT classifier fine-tune.
+- [`full_benchmark.py`](full_benchmark.py) — Cloud LLM taggers (Sonnet, qwen3.7-max) on same test set.
+
+## Verification methodology
+
+Every result is independently re-run via `verify.py` (or `eval_only.py` in exp 004) on the same test set with the same seed (42). Fingerprint of test set: `ff2fa10db2eb0b55`. Zero train/test leakage confirmed in every experiment.
+
+## Key methodology lesson
+
+**GLiNER bi-encoder F1 swings 5-17pp purely on query string choice.** Same model, same test set, different label vocabulary:
+
+```
+nvidia/gliner-PII with 13 coarse snake_case ('person_name'):  79.8%
+nvidia/gliner-PII with 17 natural-language ('person name'):    90.4%
+nvidia/gliner-PII with 26 fine native labels ('first_name'):   97.2%
+```
+
+Always query a bi-encoder with its native training vocabulary. Documented in [`003-finetune-gliner-small/verify_labels.py`](003-finetune-gliner-small/verify_labels.py).
+
+## Recommended training pattern
+
+**Train on fine labels, collapse to coarse post-hoc.** Beats training directly on coarse: 96.1% (exp 004 fine→coarse) > 95.5% (exp 003 trained-on-coarse). The richer supervision during training transfers to better representations even at coarser inference granularity.
 
 ## The pipeline
 

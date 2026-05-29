@@ -12,7 +12,7 @@ Your data ──→ [pii-proxy] ──→ LLM sees only fake data ──→ [pii
 
 Works with Node.js, Bun, and any OpenAI-compatible API (Claude, GPT, local models).
 
-**Local detection.** Fine-tuned BERT classifier: **93.9% F1, 26ms/record** on the NVIDIA Nemotron-PII healthcare benchmark. Fine-tuned GLiNER-small: **95.5% F1, 126ms/record** (zero-shot capable). Both run on a CPU with no cloud dependency. [Reproducible benchmarks →](experiments/)
+**Local detection.** Fine-tuned `gliner_small-v2.1` on Nemotron-PII healthcare: **96.1% F1 coarse, 94.9% F1 fine, 144ms/record** — within 1.3pp of NVIDIA's flagship `gliner-PII` at 1.5x the speed (verified on the same test set). Or use the BERT classifier path for **93.9% F1 at 26ms**. All local, no cloud dependency. [Reproducible benchmarks →](experiments/)
 
 ## Why
 
@@ -306,33 +306,35 @@ bun run examples/anthropic-agent.ts
 
 ## Benchmarks
 
-Full evaluation on NVIDIA's [Nemotron-PII](https://huggingface.co/datasets/nvidia/Nemotron-PII) healthcare subset (725 records, 4,703 labeled spans, same held-out 100-record test set across all methods). Scripts in [`experiments/`](experiments/).
+Evaluation on NVIDIA's [Nemotron-PII](https://huggingface.co/datasets/nvidia/Nemotron-PII) healthcare subset, same held-out 100-record test set across all methods. All numbers independently verified ([`verify.py`](experiments/003-finetune-gliner-small/verify.py)).
 
-**Honest summary:** NVIDIA's `gliner-PII` (their flagship, 1.7GB) is the strongest detector at **97.2% F1**. Our fine-tuned `gliner_small-v2.1` (582MB, 3x smaller) reaches **95.5% F1** and is 1.7x faster. Our fine-tuned BERT classifier is the fastest at **26ms/record, 93.9% F1**.
+**Truly fair head-to-head** — same labels, same vocabulary, same query strategy:
 
-| Method | F1 | Latency/record | Weights | Zero-shot capable |
+| Method | Fine F1 | Coarse F1 | Latency | Weights |
 |---|---|---|---|---|
-| **nvidia/gliner-PII** (zero-shot, native labels) | **97.2%** | 210ms | 1699MB | Yes |
-| Our fine-tuned `gliner_small-v2.1` ([exp 003](experiments/003-finetune-gliner-small/)) | 95.5% | 126ms | 582MB | Yes |
-| Our fine-tuned BERT classifier ([exp 002](experiments/clean_benchmark.py)) | 93.9% | 26ms | 438MB | No |
-| Claude Sonnet (proper prompt) | 92.5% | 2.5s | cloud API | — |
-| `gliner_small-v2.1` (zero-shot baseline) | 54.8% | 115ms | 582MB | Yes |
+| **nvidia/gliner-PII** | **96.2%** | **96.7%** | 211ms | 1699MB |
+| Our fine-tuned `gliner_small` ([exp 004](experiments/004-finetune-fine-labels/)) | 94.9% | 96.1% | 144ms | 582MB |
+| Our BERT classifier ([exp 002](experiments/clean_benchmark.py)) | — | 93.9% | 26ms | 438MB |
+| Claude Sonnet (proper prompt) | — | 92.5% | 2.5s | cloud |
+| `gliner_small-v2.1` (zero-shot baseline) | 54.8% | — | 115ms | 582MB |
 
-All numbers from independent verification on the same test set (fingerprint `ff2fa10db2eb0b55`, zero train/test leakage).
+**The honest takeaway:** NVIDIA's flagship is still slightly more accurate. We're 1.3pp behind at fine granularity and 0.6pp behind at coarse granularity — but 1.5x faster and on a 3x smaller base model. The BERT classifier is the fastest option at 26ms when zero-shot capability isn't needed.
 
-**Three valid optima depending on your need:**
+**Three valid optima depending on your constraints:**
 
 ```
-Need maximum accuracy?         nvidia/gliner-PII (97.2%, 210ms, 1.7GB)
-Need fast + accurate + small?  Our fine-tuned gliner_small (95.5%, 126ms, 582MB)
-Need sub-30ms latency?         Our fine-tuned BERT (93.9%, 26ms, 438MB)
+Need maximum accuracy?         nvidia/gliner-PII   (96.7% coarse, 211ms, 1.7GB)
+Need balance + zero-shot?      Our gliner_small     (96.1% coarse, 144ms, 582MB)
+Need sub-30ms latency?         Our BERT classifier  (93.9% coarse,  26ms, 438MB)
 ```
 
-**The compile pipeline works.** Fine-tuning `gliner_small-v2.1` on just 575 records of healthcare PII (15 min on Apple MPS) takes the base model from 54.8% → 95.5% F1. Within 1.7pp of NVIDIA's flagship using 1/3 the parameters.
+**The compile pipeline works** — `gliner_small-v2.1` (54.8% baseline) → 96.1% coarse F1 after 15 minutes of fine-tuning on a laptop. Within striking distance of NVIDIA's flagship.
 
-**Methodology note:** GLiNER bi-encoder models are sensitive to query string choice. NVIDIA's `gliner-PII` scores 90.4% with natural-language labels ("person name") and 97.2% with native training labels ("first_name"). Always benchmark with the model's native vocabulary. See [`verify_labels.py`](experiments/003-finetune-gliner-small/verify_labels.py).
+**Methodology pitfall (worth knowing):** GLiNER bi-encoder models are extremely sensitive to query string choice. NVIDIA's `gliner-PII` scores 79.8% with simple coarse queries ("person_name"), 90.4% with natural-language ("person name"), and 97.2% with fine native labels ("first_name", "last_name"). The same model — three very different scores. Anyone benchmarking GLiNER must report the query strategy. See [`verify_labels.py`](experiments/003-finetune-gliner-small/verify_labels.py).
 
-See [`experiments/`](experiments/) for full reproducibility — every script, every result, every caveat.
+**Recommended training pattern:** train on fine labels, collapse to coarse post-hoc. Beats training directly on coarse (96.1% vs 95.5% in our experiments — richer supervision signal during training).
+
+See [`experiments/`](experiments/) for every script, every result, every caveat.
 
 ## Comparison with alternatives
 

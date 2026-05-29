@@ -1,0 +1,66 @@
+{
+  "experiment": "004-finetune-fine-labels (eval-only from ckpt-1000)",
+  "fine_labels": [
+    "biometric_identifier",
+    "blood_type",
+    "certificate_license_number",
+    "city",
+    "country",
+    "county",
+    "date",
+    "date_of_birth",
+    "date_time",
+    "email",
+    "first_name",
+    "health_plan_beneficiary_number",
+    "last_name",
+    "medical_record_number",
+    "password",
+    "phone_number",
+    "pin",
+    "ssn",
+    "state",
+    "street_address",
+    "swift_bic",
+    "time",
+    "unique_id",
+    "url"
+  ],
+  "ours_fine": {
+    "f1": 0.9489795918367347,
+    "p": 0.9505962521294719,
+    "r": 0.9473684210526315,
+    "tp": 558,
+    "fp": 29,
+    "fn": 31,
+    "avg_ms": 143.7619592099999
+  },
+  "ours_coarse": {
+    "f1": 0.9608843537414966,
+    "p": 0.9625212947189097,
+    "r": 0.9592529711375212,
+    "tp": 565,
+    "fp": 22,
+    "fn": 24,
+    "avg_ms": 74.72516452000018
+  },
+  "nvidia_fine": {
+    "f1": 0.9621530698065601,
+    "p": 0.9533333333333334,
+    "r": 0.9711375212224108,
+    "tp": 572,
+    "fp": 28,
+    "fn": 17,
+    "avg_ms": 211.19528285999894
+  },
+  "nvidia_coarse": {
+    "f1": 0.9671993271656854,
+    "p": 0.9583333333333334,
+    "r": 0.9762308998302207,
+    "tp": 575,
+    "fp": 25,
+    "fn": 14,
+    "avg_ms": 202.91985792000168
+  },
+  "delta_fine_pp": -1.3173477969825376
+}
