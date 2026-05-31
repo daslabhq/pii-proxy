@@ -1,0 +1,27 @@
+{
+  "experiment": "005-nvidia-baseline",
+  "base_model": "urchade/gliner_small-v2.1",
+  "train_records": 98994,
+  "test_records": 500,
+  "entity_types": 55,
+  "epochs": 3,
+  "batch_size": 16,
+  "ours": {
+    "f1": 0.9007432270438743,
+    "p": 0.9048651252408478,
+    "r": 0.8966587112171838,
+    "tp": 3757,
+    "fp": 395,
+    "fn": 433
+  },
+  "nvidia": {
+    "f1": 0.8930031257513827,
+    "p": 0.8997093023255814,
+    "r": 0.8863961813842482,
+    "tp": 3714,
+    "fp": 414,
+    "fn": 476
+  },
+  "delta_f1_pp": 0.7740101292491586,
+  "train_time_seconds": 2339.139353275299
+}

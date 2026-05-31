@@ -6,3 +6,4 @@ experiments/output/
 experiments/**/model/
 experiments/**/output.log
 package-lock.json
+experiments/**/output/
