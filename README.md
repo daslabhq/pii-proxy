@@ -12,7 +12,7 @@ Your data ──→ [pii-proxy] ──→ LLM sees only fake data ──→ [pii
 
 Works with Node.js, Bun, and any OpenAI-compatible API (Claude, GPT, local models).
 
-**Local detection.** Fine-tuned `gliner_small-v2.1` on Nemotron-PII healthcare: **96.1% F1 coarse, 94.9% F1 fine, 144ms/record** — within 1.3pp of NVIDIA's flagship `gliner-PII` at 1.5x the speed (verified on the same test set). Or use the BERT classifier path for **93.9% F1 at 26ms**. All local, no cloud dependency. [Reproducible benchmarks →](experiments/)
+**Local detection.** Fine-tuned `gliner_small-v2.1` on full Nemotron-PII (100k records): **90.1% F1 — matches NVIDIA's flagship `gliner-PII` (89.3%) using a 3x smaller base model**, trained in 39 min for ~$8 with a reproducible recipe. Runs locally, no cloud dependency. [Reproducible benchmarks →](experiments/)
 
 ## Why
 
@@ -306,7 +306,20 @@ bun run examples/anthropic-agent.ts
 
 ## Benchmarks
 
-Evaluation on NVIDIA's [Nemotron-PII](https://huggingface.co/datasets/nvidia/Nemotron-PII) healthcare subset, same held-out 100-record test set across all methods. All numbers independently verified ([`verify.py`](experiments/003-finetune-gliner-small/verify.py)).
+### Headline: full-dataset replication ([exp 005](experiments/005-nvidia-baseline/))
+
+Fine-tuning `gliner_small-v2.1` on the **full Nemotron-PII dataset** (100k records, all 55 entity types) **matches NVIDIA's flagship `gliner-PII` using a base model with ~3x fewer parameters:**
+
+| Model | Base | F1 | Precision | Recall |
+|---|---|---|---|---|
+| **Our `gliner_small-v2.1`** | small (~50M) | **90.1%** | 90.5% | 89.7% |
+| `nvidia/gliner-PII` | large (~300M) | 89.3% | 90.0% | 88.6% |
+
+Same 100k data, same 55 native labels, same held-out 500-record test set, no train/test leakage. 3 epochs, 4× A100, 39 min, ~$8. **Read +0.8pp as a statistical tie** (500-record test ≈ ±0.2pp noise), not "we beat NVIDIA" — the real claim is *flagship quality from a 3x smaller base, with a reproducible recipe* (NVIDIA shipped weights, no recipe). **Caveat:** both models trained on Nemotron, so this measures in-distribution reproduction, not out-of-distribution generalization — see [exp 005 README](experiments/005-nvidia-baseline/) for the full lineage caveat.
+
+### Healthcare subset head-to-head ([exp 004](experiments/004-finetune-fine-labels/))
+
+Evaluation on the Nemotron-PII healthcare subset, same held-out 100-record test set across all methods. All numbers independently verified ([`verify.py`](experiments/003-finetune-gliner-small/verify.py)).
 
 **Truly fair head-to-head** — same labels, same vocabulary, same query strategy:
 
