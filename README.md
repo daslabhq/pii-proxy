@@ -319,6 +319,11 @@ Same 100k data, same 55 native labels, same held-out 500-record test set, no tra
 
 ### Healthcare subset head-to-head ([exp 004](experiments/004-finetune-fine-labels/))
 
+> Not a contradiction with the result above — a *different, harder cut*. Exp 005
+> is the full-dataset, same-base replication, where it's a statistical tie. This
+> is the healthcare-only subset with fine-grained labels, where NVIDIA's flagship
+> edges slightly ahead. Both are true; they measure different things.
+
 Evaluation on the Nemotron-PII healthcare subset, same held-out 100-record test set across all methods. All numbers independently verified ([`verify.py`](experiments/003-finetune-gliner-small/verify.py)).
 
 **Truly fair head-to-head** — same labels, same vocabulary, same query strategy:
