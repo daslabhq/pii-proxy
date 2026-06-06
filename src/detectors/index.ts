@@ -113,6 +113,49 @@ const trackingDetector: Detector = {
   },
 };
 
+// ─── Context-gated ID numbers ───────────────────────────────────
+// A bare alphanumeric token ("HA3552738") is ambiguous; the same token
+// right after "passport" / "social security" / "driver's license" is not.
+// The keyword does the disambiguation, so false positives stay near zero
+// and the type is known — which keeps the fake the right shape.
+
+const ID_KEYWORDS: Array<[RegExp, string]> = [
+  [/passport(?:\s+(?:number|no\.?|#))?/gi, 'passport_number'],
+  [/(?:social\s+(?:security|insurance)|national\s+insurance|\bssn\b|\bnin\b|tax\s+id)(?:\s+(?:number|no\.?|#))?/gi, 'national_id'],
+  [/(?:driver'?s?|driving)\s+licen[cs]e(?:\s+(?:number|no\.?|#))?|\bdl\s+(?:number|no\.?|#)/gi, 'driver_license'],
+  [/(?:id|identity|identification)\s+card(?:\s+(?:number|no\.?|#))?/gi, 'id_card'],
+];
+
+// ID-like token: letters/digits with optional . or - separators,
+// 5–24 chars, at least 3 digits.
+const ID_TOKEN = /[A-Za-z0-9](?:[A-Za-z0-9.\-]{3,22})[A-Za-z0-9]/y;
+
+const contextIdDetector: Detector = {
+  type: 'context_id',
+  detect(text) {
+    const results: Detection[] = [];
+    for (const [keyword, type] of ID_KEYWORDS) {
+      keyword.lastIndex = 0;
+      let kw;
+      while ((kw = keyword.exec(text)) !== null) {
+        // Look for the first ID-like token within 40 chars after the keyword.
+        const windowEnd = Math.min(text.length, keyword.lastIndex + 40);
+        for (let i = keyword.lastIndex; i < windowEnd; i++) {
+          ID_TOKEN.lastIndex = i;
+          const m = ID_TOKEN.exec(text);
+          if (!m || m.index !== i) continue;
+          const digits = (m[0].match(/\d/g) || []).length;
+          // Skip filler words ("number", "is") and anything mostly alphabetic.
+          if (digits < 3) continue;
+          results.push({ type, value: m[0], start: m.index, end: m.index + m[0].length });
+          break;
+        }
+      }
+    }
+    return results;
+  },
+};
+
 // ─── Helpers ────────────────────────────────────────────────────
 
 function matchAll(re: RegExp, text: string, type: string): Detection[] {
@@ -136,6 +179,7 @@ export const defaultDetectors: Detector[] = [
   urlDetector,
   trackingDetector,
   ipDetector,
+  contextIdDetector, // before phone: a typed ID beats a loose digit match
   phoneDetector,
 ];
 

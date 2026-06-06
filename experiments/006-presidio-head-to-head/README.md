@@ -24,9 +24,17 @@ Combined systems are merged with the library's exact `detectAll` semantics
 | System | P | R | F1 | exact-F1 | coverage† | ms/rec |
 |---|---|---|---|---|---|---|
 | presidio (default) | 47.5% | 37.6% | 42.0% | 34.9% | 53.8% | 18 |
-| pii-proxy (regex only) | 52.6% | 12.8% | 20.6% | 18.7% | 23.9% | 0.05 |
+| pii-proxy (regex only) | 72.8% | 20.5% | 32.0% | 29.6% | 27.6% | 0.05 |
 | pii-proxy (model only) | 79.5% | 70.7% | 74.8% | 71.4% | 83.6% | 134 |
-| **pii-proxy (full)** | **77.3%** | **73.5%** | **75.4%** | 71.9% | **88.9%** | 134 |
+| **pii-proxy (full)** | **77.6%** | **73.9%** | **75.7%** | 72.2% | **89.0%** | 134 |
+
+**Regex-vs-regex**: Presidio's 42% is not a regex score — its NAME / LOCATION
+/ DATETIME detection comes from spaCy NER. Restricted to pattern recognizers
+on both sides, **pii-proxy regex 32.0% vs Presidio-patterns 27.8%**, at
+higher precision (72.8% vs 42.1%). The decisive piece is context-gated ID
+detection (a 9-digit number near "passport" is a passport number) — the same
+context-word mechanism Presidio pioneered, applied with a single generic
+detector instead of per-country recognizers.
 
 *Model = `pii-proxy-ner`: our fine-tune of `gliner_small-v2.1` on the full
 Nemotron-PII (100k records, 55 entity types, 30 domains —
@@ -41,8 +49,8 @@ leak-prevention number; type-correct F1 is the fake-quality number.
 
 **Shared-vocabulary comparison** (only the 9 buckets BOTH systems have types
 for — strips our vocabulary-coverage advantage out of the delta; relaxed
-many-to-many matching): **pii-proxy (full) 80.2% F1 vs Presidio 49.1%**
-(+31.1pp). The full-vocabulary delta is +33.4pp.
+many-to-many matching): **pii-proxy (full) 80.5% F1 vs Presidio 49.1%**
+(+31.4pp). The full-vocabulary delta is +33.7pp.
 
 ### Ablations (smaller exp-004 model, ordering, zero-shot)
 
@@ -52,10 +60,14 @@ worth:
 
 | System | F1 | coverage |
 |---|---|---|
-| regex-first + ner-health (native labels) | 62.2% | 77.8% |
-| regex-first + ner-health (+8 zero-shot labels) | 65.3% | 80.0% |
-| ner-health (+zero-shot) first + regex | 69.8% | 80.0% |
+| regex-first + ner-health (native labels) | 67.9% | 78.5% |
+| regex-first + ner-health (+8 zero-shot labels) | 70.0% | 80.3% |
+| ner-health (+zero-shot) first + regex | 70.4% | 80.3% |
 | ner-health (+zero-shot) alone | 68.8% | 71.8% |
+
+(Ordering matters less than it originally did — typed, context-gated IDs in
+the regex layer mean regex-first no longer shadows model detections with
+wrong-type matches. The remaining gap is the loose phone regex.)
 
 - **Detector order: worth 4.5pp F1.** The merge is first-wins; regex-first
   lets the loose phone regex shadow correct model detections (PASSPORT
@@ -79,22 +91,26 @@ worth:
 | USERNAME | 319 | 0.0% | 0.0% | 76.5% | 76.5% |
 | PASSWORD | 209 | 0.0% | 0.0% | 75.9% | 75.9% |
 | EMAIL | 332 | **97.8%** | 97.8% | 95.5% | 95.7% |
-| PHONE | 245 | 31.9% | 37.5% | 71.5% | 56.4% |
+| PHONE | 245 | 31.9% | 48.4% | 71.5% | 57.5% |
 | SEX | 244 | 0.0% | 0.0% | 68.4% | 68.4% |
-| PASSPORT | 317 | **75.7%** | 0.0% | 65.9% | 65.9% |
-| NATIONAL_ID | 314 | 32.2% | 0.0% | 55.2% | 55.2% |
+| PASSPORT | 317 | **75.7%** | 73.9% | 65.9% | 67.5% |
+| NATIONAL_ID | 314 | 32.2% | 46.2% | 55.2% | 58.4% |
 | IP | 274 | **98.4%** | 96.1% | 52.9% | 87.8% |
-| DRIVER_LICENSE | 305 | 28.6% | 0.0% | 52.6% | 52.6% |
-| ID_CARD | 363 | 0.0% | 0.0% | 50.9% | 50.9% |
+| DRIVER_LICENSE | 305 | 28.6% | 55.1% | 52.6% | 54.5% |
+| ID_CARD | 363 | 0.0% | 39.5% | 50.9% | 51.1% |
 | GEOCOORD | 30 | 0.0% | 0.0% | 49.5% | 49.5% |
 | TITLE | 267 | 0.0% | 0.0% | 41.9% | 41.9% |
 
 ### What the numbers say
 
-1. **pii-proxy (full) beats default Presidio by +33.4pp F1** (75.4% vs
-   42.0%), **+31.1pp on shared vocabulary** (80.2% vs 49.1%), and masks
-   **88.9% vs 53.8%** of all PII spans. It wins 13 of 15 categories;
-   Presidio narrowly keeps IP (98.4% vs 87.8%) and EMAIL is a tie.
+1. **pii-proxy (full) beats default Presidio by +33.7pp F1** (75.7% vs
+   42.0%), **+31.4pp on shared vocabulary** (80.5% vs 49.1%), and masks
+   **89.0% vs 53.8%** of all PII spans. It wins 13 of 15 categories;
+   Presidio narrowly keeps IP (98.4% vs 87.8%) and PASSPORT (75.7% vs
+   67.5%); EMAIL is a tie. The regex layers alone: ours 32.0% vs their
+   pattern recognizers 27.8% — context-gated ID detection (added from this
+   benchmark's gap list, keyword vocabulary is generic English, not tuned
+   to this dataset) closed what was a 0-vs-3-recognizer gap.
 2. **Training vocabulary is the variable that matters most OOD.** The
    flagship (55 types, 30 domains) holds 74.8% F1 where the 24-label
    healthcare fine-tune manages 68.8% with zero-shot patches — and the
@@ -115,7 +131,7 @@ worth:
    confidence/type-aware span conflict resolution** (the ideal merge takes
    regex for EMAIL/IP, model for the rest — beating every ordering
    benchmarked here).
-4. **Nobody is leak-safe out of distribution — we now leave 11.1%.**
+4. **Nobody is leak-safe out of distribution — we now leave 11.0%.**
    Concrete remaining gaps:
    - **IP — fixed mid-experiment, instructively.** 54% of gold IPs are
      IPv6; the regex was IPv4-only and the model's native `ipv4`/`ipv6`

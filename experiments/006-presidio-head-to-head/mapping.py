@@ -52,6 +52,10 @@ PII_PROXY_REGEX = {
     "email": "EMAIL",
     "phone": "PHONE",
     "ip_address": "IP",
+    "passport_number": "PASSPORT",
+    "national_id": "NATIONAL_ID",
+    "driver_license": "DRIVER_LICENSE",
+    "id_card": "ID_CARD",
     # Unverifiable against this dataset's annotations:
     "credit_card": None, "uuid": None, "url": None, "tracking_number": None,
 }

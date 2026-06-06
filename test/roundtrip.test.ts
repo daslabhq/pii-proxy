@@ -71,6 +71,32 @@ describe('PrivacyProxy', () => {
     expect(masked.text).toBe('Meeting at 12:30, score was 3:2, uptime 99:99:99');
   });
 
+  test('context-gated ID detection round-trip', async () => {
+    const proxy = new PrivacyProxy();
+    const original =
+      'Passport number HA3552738, SSN 539-75-3166, driver license WDLABCD456DG, ID card AB12345CD';
+
+    const masked = await proxy.mask(original);
+    const types = masked.detections.map(d => d.type).sort();
+    expect(types).toEqual(['driver_license', 'id_card', 'national_id', 'passport_number']);
+    expect(masked.text).not.toContain('HA3552738');
+    expect(masked.text).not.toContain('539-75-3166');
+    // format-preserving fakes keep the shape
+    const passport = masked.detections.find(d => d.type === 'passport_number')!;
+    expect(passport.replacement).toMatch(/^[A-Z]{2}\d{7}$/);
+
+    const restored = proxy.unmask(masked.text);
+    expect(restored).toBe(original);
+  });
+
+  test('ID detector needs context — bare numbers are not IDs', async () => {
+    const proxy = new PrivacyProxy();
+    const masked = await proxy.mask('Order total was 539751234, room 4521, year 2024');
+    const idTypes = masked.detections.filter(d =>
+      ['passport_number', 'national_id', 'driver_license', 'id_card'].includes(d.type));
+    expect(idTypes).toHaveLength(0);
+  });
+
   test('mask and unmask multiple entity types', async () => {
     const proxy = new PrivacyProxy();
     const original = 'Email alex@example.com, tracking AETH0000345323DY, IP 192.168.1.1';
