@@ -27,8 +27,9 @@ const creditCardGenerator: Generator = (real) => {
   }).join(separator);
 };
 
-const ipGenerator: Generator = () => {
-  return faker.internet.ipv4();
+const ipGenerator: Generator = (real) => {
+  // Match the address family so the fake is shaped like the real value.
+  return real.includes(':') ? faker.internet.ipv6() : faker.internet.ipv4();
 };
 
 const uuidGenerator: Generator = () => {

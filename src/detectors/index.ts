@@ -62,8 +62,11 @@ function luhnCheck(num: string): boolean {
 const ipDetector: Detector = {
   type: 'ip_address',
   detect(text) {
-    const re = /\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b/g;
-    return matchAll(re, text, 'ip_address');
+    const v4 = /\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b/g;
+    // IPv6: full form, compressed (::), and v4-mapped (::ffff:1.2.3.4).
+    // Requires >=2 colon-separated groups so plain times ("12:30") never match.
+    const v6 = /(?<![\w:.])(?:(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,7}:|(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|(?:[0-9a-fA-F]{1,4}:){1,5}(?::[0-9a-fA-F]{1,4}){1,2}|(?:[0-9a-fA-F]{1,4}:){1,4}(?::[0-9a-fA-F]{1,4}){1,3}|(?:[0-9a-fA-F]{1,4}:){1,3}(?::[0-9a-fA-F]{1,4}){1,4}|(?:[0-9a-fA-F]{1,4}:){1,2}(?::[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}|:(?::[0-9a-fA-F]{1,4}){1,7}|::(?:[fF]{4}:)?(?:\d{1,3}\.){3}\d{1,3})(?![\w:.])/g;
+    return [...matchAll(v4, text, 'ip_address'), ...matchAll(v6, text, 'ip_address')];
   },
 };
 

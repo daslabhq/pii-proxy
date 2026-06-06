@@ -48,6 +48,29 @@ describe('PrivacyProxy', () => {
     expect(restored).toBe(original);
   });
 
+  test('mask and unmask IPv6 round-trip', async () => {
+    const proxy = new PrivacyProxy();
+    const original = 'Login from 2001:db8:85a3::8a2e:370:7334 and fe80::1';
+
+    const masked = await proxy.mask(original);
+    expect(masked.text).not.toContain('2001:db8:85a3::8a2e:370:7334');
+    expect(masked.text).not.toContain('fe80::1');
+    expect(masked.detections).toHaveLength(2);
+    expect(masked.detections.every(d => d.type === 'ip_address')).toBe(true);
+    // fakes keep the address family
+    expect(masked.detections.every(d => d.replacement.includes(':'))).toBe(true);
+
+    const restored = proxy.unmask(masked.text);
+    expect(restored).toBe(original);
+  });
+
+  test('IPv6 detector ignores times and ratios', async () => {
+    const proxy = new PrivacyProxy();
+    const masked = await proxy.mask('Meeting at 12:30, score was 3:2, uptime 99:99:99');
+    expect(masked.detections).toHaveLength(0);
+    expect(masked.text).toBe('Meeting at 12:30, score was 3:2, uptime 99:99:99');
+  });
+
   test('mask and unmask multiple entity types', async () => {
     const proxy = new PrivacyProxy();
     const original = 'Email alex@example.com, tracking AETH0000345323DY, IP 192.168.1.1';

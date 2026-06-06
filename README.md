@@ -12,7 +12,7 @@ Your data ──→ [pii-proxy] ──→ LLM sees only fake data ──→ [pii
 
 Works with Node.js, Bun, and any OpenAI-compatible API (Claude, GPT, local models).
 
-**Local detection.** Fine-tuned `gliner_small-v2.1` on full Nemotron-PII (100k records): **90.1% F1 — matches NVIDIA's flagship `gliner-PII` (89.3%) using a 3x smaller base model**, trained in 39 min for ~$8 with a reproducible recipe. On out-of-distribution data it beats default Microsoft Presidio **74.0% to 42.0% F1** ([exp 006](experiments/006-presidio-head-to-head/)). Runs locally, no cloud dependency. [Reproducible benchmarks →](experiments/)
+**Local detection.** Fine-tuned `gliner_small-v2.1` on full Nemotron-PII (100k records): **90.1% F1 — matches NVIDIA's flagship `gliner-PII` (89.3%) using a 3x smaller base model**, trained in 39 min for ~$8 with a reproducible recipe. On out-of-distribution data it beats default Microsoft Presidio **75.4% to 42.0% F1** ([exp 006](experiments/006-presidio-head-to-head/)). Runs locally, no cloud dependency. [Reproducible benchmarks →](experiments/)
 
 ## Why
 
@@ -315,23 +315,23 @@ spans masked by any detection — the leak-prevention number):
 
 | System | F1 | Coverage |
 |---|---|---|
-| **pii-proxy** (`pii-proxy-ner` + regex backstop) | **74.0%** | **86.7%** |
+| **pii-proxy** (`pii-proxy-ner` + regex backstop) | **75.4%** | **88.9%** |
 | pii-proxy (model only) | 74.8% | 83.6% |
 | Presidio (default, spaCy `en_core_web_lg`) | 42.0% | 53.8% |
-| pii-proxy (regex layer only) | 17.4% | 21.8% |
+| pii-proxy (regex layer only) | 20.6% | 23.9% |
 
 `pii-proxy-ner` is the exp-005 model below. Restricted to the 9 entity
 categories both systems support (removing our vocabulary advantage):
-**78.5% vs 49.1%** — pii-proxy wins 13 of 15 categories; Presidio keeps IP
-(our regex is IPv4-only, for now) and ties on email. Presidio is benchmarked
-untuned, as in virtually every published comparison — treat its numbers as a
-floor. Full methodology, fairness rules, per-type tables, ablations, and an
-adversarial audit of the benchmark itself: [exp 006](experiments/006-presidio-head-to-head/).
+**80.2% vs 49.1%** — pii-proxy wins 13 of 15 categories; Presidio narrowly
+keeps IP and ties on email. Presidio is benchmarked untuned, as in virtually
+every published comparison — treat its numbers as a floor. Full methodology,
+fairness rules, per-type tables, ablations, and an adversarial audit of the
+benchmark itself: [exp 006](experiments/006-presidio-head-to-head/).
 
 > Note: the npm package ships the regex layer + LLM detector today; the
 > fine-tuned model runs via the experiments pipeline. Packaging it as a
 > drop-in detector is the current roadmap priority — exp 006 measures
-> exactly what that's worth (17.4% → 74.0%).
+> exactly what that's worth (20.6% → 75.4%).
 
 ### Full-dataset replication ([exp 005](experiments/005-nvidia-baseline/))
 
@@ -398,7 +398,8 @@ See [`experiments/`](experiments/) for every script, every result, every caveat.
 - [x] **Model: training recipe** — reproducible fine-tune pipeline ([exps 002–005](experiments/)): `pii-proxy-ner` matches NVIDIA's flagship `gliner-PII` at 3x smaller base, trained in 39 min for ~$8. `pii-proxy-learn` CLI labels your own traces for domain fine-tunes
 - [x] **Model: validation** — out-of-distribution pipeline benchmark vs Microsoft Presidio ([exp 006](experiments/006-presidio-head-to-head/)): 74.0% vs 42.0% F1, with adversarial audit of the methodology
 - [ ] **v0.3** — Ship `pii-proxy-ner` as a drop-in detector (ONNX export, model-first default ordering) — exp 006 measures this at 17.4% → 74.0% F1 out of the box
-- [ ] **v0.4** — Detection quality from exp 006 findings: type/confidence-aware span conflict resolution (replaces first-wins merge), IPv6 + locale-aware ID regexes
+- [x] **IPv6 detection** — straight from exp 006's gap list: regex layer IP F1 61%→96%, full pipeline +1.4pp F1 / +2.2pp coverage
+- [ ] **v0.4** — Detection quality from exp 006 findings: type/confidence-aware span conflict resolution (replaces first-wins merge), locale-aware ID regexes
 - [ ] **v0.5** — Tool-aware selective masking (keep location real for hotel search, mask for email)
 - [ ] **v0.6** — Persistent map backends (Redis, SQLite)
 - [ ] **v0.7** — Anthropic/OpenAI SDK middleware (drop-in agent integration)
