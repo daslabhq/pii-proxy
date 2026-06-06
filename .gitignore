@@ -7,3 +7,8 @@ experiments/**/model/
 experiments/**/output.log
 package-lock.json
 experiments/**/output/
+experiments/**/.venv/
+experiments/006-presidio-head-to-head/data/*
+!experiments/006-presidio-head-to-head/data/nemotron_labels.json
+experiments/006-presidio-head-to-head/out/
+__pycache__/
