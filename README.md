@@ -18,7 +18,7 @@ Works with Node.js, Bun, and any OpenAI-compatible API (Claude, GPT, local model
 
 Your AI agent processes patient records, insurance claims, customer data. You don't want real names, emails, and ID numbers hitting Claude or GPT. But token-based masking (`PERSON_1`, `EMAIL_2`) degrades fluency — LLMs lose track of meaningless placeholders across long contexts.
 
-**pii-proxy** replaces PII with plausible fake values — the model parses realistic-looking text fluently, and a bijective map reverses every fake when you write back. (Fluency, not correctness — see [When this works](#when-this-works-and-when-it-doesnt) for failure modes.)
+**pii-proxy** replaces PII with plausible fake values — the model parses realistic-looking text fluently, and a bijective map reverses every fake when you write back. (This keeps the model fluent but means it reasons over the fakes — see [When this works](#when-this-works-and-when-it-doesnt) for failure modes.)
 
 ## Install
 
@@ -138,7 +138,7 @@ Real:   "I've drafted an email to Marcus Weber"
 
 ## When this works (and when it doesn't)
 
-Like-for-like replacement preserves **fluency, not correctness**. The model parses realistic-looking text without losing entity tracking over many opaque tokens — but it's reasoning about the *fake*, not the real.
+Like-for-like replacement keeps the model's input fluent. The model parses realistic-looking text without losing entity tracking over many opaque tokens — but it's reasoning about the *fake*, not the real.
 
 **Works well for:**
 - Drafting, replying, summarization, extraction, routing
