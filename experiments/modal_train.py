@@ -15,6 +15,10 @@ Run:
     modal run experiments/modal_train.py --full             # full 100k Nemotron
     modal run experiments/modal_train.py --base-model urchade/gliner_medium-v2.1
 
+Publish to Hugging Face (needs the "huggingface" Modal secret with HF_TOKEN):
+    modal run --detach experiments/modal_train.py --full --push-hf
+    modal run --detach experiments/modal_train.py --push-hf --hf-repo daslabhq/pii-proxy-smoke --epochs 1
+
 Results print to stdout and save to the Modal volume (downloadable).
 """
 
@@ -33,6 +37,7 @@ image = (
         "accelerate",
         "seqeval",
         "sentencepiece",
+        "huggingface_hub",
     )
 )
 
@@ -60,6 +65,7 @@ FINE_TO_COARSE = {
     gpu="A100",            # 40GB — handles batch_size 16+, full focal loss
     timeout=60 * 60 * 8,   # up to 8 hours for full dataset
     volumes={MODEL_DIR: volume},
+    secrets=[modal.Secret.from_name("huggingface")],
 )
 def train(
     epochs: int = 5,
@@ -67,6 +73,8 @@ def train(
     batch_size: int = 16,
     full: bool = False,
     test_size: int = 100,
+    push_hf: bool = False,
+    hf_repo: str = "daslabhq/pii-proxy",
 ):
     import ast, json, os, random, re, time
     import torch
@@ -233,12 +241,85 @@ def train(
         json.dump(result, f, indent=2)
     volume.commit()
 
+    if push_hf:
+        _push_to_hub(model, hf_repo, result)
+
     return result
 
 
+def _model_card(result: dict) -> str:
+    fine = result["fine_f1"] * 100
+    coarse = result["coarse_f1"] * 100
+    scope = "the full Nemotron-PII dataset (~100k)" if result["full_dataset"] else "the Nemotron-PII healthcare subset"
+    return f'''---
+license: apache-2.0
+base_model: {result["base_model"]}
+library_name: gliner
+pipeline_tag: token-classification
+tags:
+- gliner
+- token-classification
+- pii
+- ner
+---
+
+# pii-proxy
+
+A GLiNER model fine-tuned for PII detection. GLiNER does zero-shot NER over
+arbitrary labels — you pass the entity types you care about at inference time,
+so there is no fixed label schema to work around.
+
+Fine-tuned from `{result["base_model"]}` on {scope}.
+
+## Results
+
+Held-out test set ({result["test_size"]} examples), {result["fine_labels"]} fine-grained PII labels:
+
+| Metric | F1 |
+|---|---|
+| Fine-grained | {fine:.1f}% |
+| Coarse-grained | {coarse:.1f}% |
+
+NVIDIA's Nemotron-PII reference: fine 96.2%, coarse 96.7%.
+
+## Usage
+
+```python
+from gliner import GLiNER
+
+model = GLiNER.from_pretrained("daslabhq/pii-proxy")
+labels = ["first_name", "last_name", "email", "phone_number", "ssn", "street_address"]
+entities = model.predict_entities("Patient Marcus Weber, marcus.weber@gmail.com", labels)
+for e in entities:
+    print(e["text"], "->", e["label"])
+```
+
+## Training
+
+- Base model: `{result["base_model"]}`
+- Epochs: {result["epochs"]}, batch size {result["batch_size"]}
+- Train examples: {result["train_size"]}
+- Focal loss (alpha 0.75, gamma 2)
+'''
+
+
+def _push_to_hub(model, repo_id: str, result: dict) -> None:
+    import os
+    from huggingface_hub import HfApi
+
+    out = f"{MODEL_DIR}/hf_export"
+    model.save_pretrained(out)
+    with open(f"{out}/README.md", "w") as f:
+        f.write(_model_card(result))
+    api = HfApi(token=os.environ["HF_TOKEN"])
+    api.create_repo(repo_id, exist_ok=True, repo_type="model")
+    api.upload_folder(folder_path=out, repo_id=repo_id, repo_type="model")
+    print(f"pushed -> https://huggingface.co/{repo_id}")
+
+
 @app.local_entrypoint()
-def main(epochs: int = 5, full: bool = False, base_model: str = "urchade/gliner_small-v2.1", batch_size: int = 16):
-    result = train.remote(epochs=epochs, full=full, base_model=base_model, batch_size=batch_size)
+def main(epochs: int = 5, full: bool = False, base_model: str = "urchade/gliner_small-v2.1", batch_size: int = 16, push_hf: bool = False, hf_repo: str = "daslabhq/pii-proxy"):
+    result = train.remote(epochs=epochs, full=full, base_model=base_model, batch_size=batch_size, push_hf=push_hf, hf_repo=hf_repo)
     print("\nFinal result:")
     import json
     print(json.dumps(result, indent=2))
