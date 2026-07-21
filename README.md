@@ -12,7 +12,7 @@ Your data ──→ [pii-proxy] ──→ LLM sees only fake data ──→ [pii
 
 Works with Node.js, Bun, and any OpenAI-compatible API (Claude, GPT, local models).
 
-**Local detection.** Fine-tuned `gliner_small-v2.1` on full Nemotron-PII (100k records): **90.1% F1 — matches NVIDIA's flagship `gliner-PII` (89.3%) using a 3x smaller base model**, trained in 39 min for ~$8 with a reproducible recipe. On out-of-distribution data it beats default Microsoft Presidio **75.7% to 42.0% F1** ([exp 006](experiments/006-presidio-head-to-head/)). Runs locally, no cloud dependency. [Reproducible benchmarks →](experiments/)
+**Local detection.** Fine-tuned `gliner_small-v2.1` on the full 55-label Nemotron-PII: **91.5% fine F1 — matches NVIDIA's flagship `gliner-PII` (90.9%) on the identical held-out records**, from a base model a third the size (582 MB vs 1.7 GB), with a reproducible recipe. On out-of-distribution data it beats default Microsoft Presidio **75.7% to 42.0% F1** ([exp 006](experiments/006-presidio-head-to-head/)). Runs locally, no cloud dependency. [Reproducible benchmarks →](experiments/)
 
 ## Why
 
@@ -339,23 +339,24 @@ audit of the benchmark itself: [exp 006](experiments/006-presidio-head-to-head/)
 > drop-in detector is the current roadmap priority — exp 006 measures
 > exactly what that's worth (32.0% → 75.7%).
 
-### Full-dataset replication ([exp 005](experiments/005-nvidia-baseline/))
+### Same-records head-to-head ([exp 005](experiments/005-nvidia-baseline/))
 
-Fine-tuning `gliner_small-v2.1` on the **full Nemotron-PII dataset** (100k records, all 55 entity types) **matches NVIDIA's flagship `gliner-PII` using a base model with ~3x fewer parameters:**
+Fine-tuning `gliner_small-v2.1` on the **full 55-label Nemotron-PII** vocabulary **matches NVIDIA's flagship `gliner-PII` from a base model a third the size** — both scored on the *identical* held-out records, fine F1:
 
-| Model | Base | F1 | Precision | Recall |
+| Model | Base | Fine F1 | Precision | Recall |
 |---|---|---|---|---|
-| **Our `gliner_small-v2.1`** | small (~50M) | **90.1%** | 90.5% | 89.7% |
-| `nvidia/gliner-PII` | large (~300M) | 89.3% | 90.0% | 88.6% |
+| **`pii-proxy` (`gliner_small-v2.1`)** | small (~50M) | **91.5%** | 90.2% | 92.8% |
+| `nvidia/gliner-PII` | large (~300M) | 90.9% | 90.6% | 91.3% |
 
-Same 100k data, same 55 native labels, same held-out 500-record test set, no train/test leakage. 3 epochs, 4× A100, 39 min, ~$8. **Read +0.8pp as a statistical tie** (500-record test ≈ ±0.2pp noise), not "we beat NVIDIA" — the real claim is *flagship quality from a 3x smaller base, with a reproducible recipe* (NVIDIA shipped weights, no recipe). **Caveat:** both models trained on Nemotron, so this measures in-distribution reproduction, not out-of-distribution generalization — see [exp 005 README](experiments/005-nvidia-baseline/) for the full lineage caveat.
+Both models on the **same** 500-record held-out `test` set (hash-verified identical), each at its best native-label query, threshold 0.5, leakage-checked 0/500 — the eval is [`head_to_head_eval.py`](experiments/head_to_head_eval.py), both query strings published. **Read +0.6pp as a statistical tie** (500-record test ≈ ±0.2pp noise), not "we beat NVIDIA" — the real claim is *flagship quality from a base a third the size, with a reproducible recipe* (NVIDIA shipped weights, no recipe). On the healthcare slice the order reverses by a hair: NVIDIA 91.0%, pii-proxy 90.8%. **Caveat:** both models trained on Nemotron, so this measures in-distribution reproduction — the out-of-distribution result ([exp 006](experiments/006-presidio-head-to-head/)) is where the fine-tune earns its keep.
 
 ### Healthcare subset head-to-head ([exp 004](experiments/004-finetune-fine-labels/))
 
-> Not a contradiction with the result above — a *different, harder cut*. Exp 005
-> is the full-dataset, same-base replication, where it's a statistical tie. This
-> is the healthcare-only subset with fine-grained labels, where NVIDIA's flagship
-> edges slightly ahead. Both are true; they measure different things.
+> **The canonical healthcare number is in the head-to-head above** — clean held-out
+> `test` split, NVIDIA 91.0% / pii-proxy 90.8%. The 96%+ figures below come from an
+> earlier, smaller healthcare *subset* eval that does **not** reproduce on the clean
+> split; read them as a ceiling on an easier cut, not the headline. Kept here for the
+> query-strategy and latency detail, which still hold.
 
 Evaluation on the Nemotron-PII healthcare subset, same held-out 100-record test set across all methods. All numbers independently verified ([`verify.py`](experiments/003-finetune-gliner-small/verify.py)).
 
