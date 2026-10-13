@@ -13,6 +13,14 @@
     "./learn": {
       "import": "./dist/learn.js",
       "types": "./dist/learn.d.ts"
+    },
+    "./files": {
+      "import": "./dist/files/index.js",
+      "types": "./dist/files/index.d.ts"
+    },
+    "./packs/th": {
+      "import": "./dist/packs/th/index.js",
+      "types": "./dist/packs/th/index.d.ts"
     }
   },
   "bin": {
@@ -45,13 +53,14 @@
   },
   "dependencies": {
     "@faker-js/faker": "^9.0.0",
-    "gliner": "^0.0.19",
-    "onnxruntime-node": "^1.26.0",
-    "onnxruntime-web": "^1.26.0"
+    "fflate": "^0.8.3"
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
     "@types/bun": "latest",
+    "gliner": "^0.0.19",
+    "onnxruntime-node": "^1.26.0",
+    "onnxruntime-web": "^1.26.0",
     "typescript": "^5.5.0"
   }
 }

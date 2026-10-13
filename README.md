@@ -37,13 +37,13 @@ const proxy = new PrivacyProxy();
 const masked = await proxy.mask(
   "Ship order to alex@example.com, tracking AETH0000345323DY"
 );
-// → "Ship order to alex@johnson.net, tracking BFUI0000482918EZ"
+// → "Ship order to jordan.smith@example.net, tracking BFUI0000482918EZ"
 
 // Send masked.text to your LLM...
 
 // Reverse all fakes back to real values
 const real = proxy.unmask(llmResponse);
-// "I'll notify alex@johnson.net" → "I'll notify alex@example.com"
+// "I'll notify jordan.smith@example.net" → "I'll notify alex@example.com"
 ```
 
 ## Local LLM detection
@@ -156,7 +156,7 @@ If your task leans on entity surface properties, treat pii-proxy as a fluency la
 
 | Type | Detection | Fake replacement |
 |---|---|---|
-| Email | Regex | Realistic fake email |
+| Email | Regex | Fake at a reserved example domain — it can never reach anyone |
 | Phone | Regex | Format-preserving fake |
 | Credit card | Regex + Luhn | Valid fake card number |
 | IP address | Regex (IPv4 + IPv6) | Random valid IP, same family |
@@ -173,7 +173,11 @@ If your task leans on entity surface properties, treat pii-proxy as a fluency la
 | Date of birth | Local LLM | Format-preserving fake date |
 | Medical record | Local LLM | Format-preserving fake |
 | Insurance ID | Local LLM | Format-preserving fake |
+| First / last name | Table columns (`pii-proxy/files`) | Faker name; follows a title's sex |
+| Employee ID | Table columns (`pii-proxy/files`) | Letters and first two digits kept, rest new |
 | *Custom* | Local LLM | Format-preserving fallback |
+
+Whatever generates it, a fake never equals or contains a real value the proxy has seen — so searching masked output for real names is a valid check.
 
 ## Structured data
 
@@ -187,7 +191,7 @@ const { masked } = await proxy.maskObject({
   metadata: { ip: "10.0.0.1" }
 });
 
-// masked.to → "alex@johnson.net"
+// masked.to → "jordan.smith@example.net"
 // masked.subject → "Order update" (no PII, unchanged)
 // masked.body → "Tracking: BFUI0000482918EZ"
 // masked.metadata.ip → "172.45.123.89"
@@ -238,6 +242,46 @@ const proxy = new PrivacyProxy({
 });
 ```
 
+## Packs
+
+A pack bundles what one locale or domain needs — detectors, generators, column headers, titles — and plugs in with `use`. A pack's detectors run before the defaults, so its typed IDs win over looser matches on the same span. Without packs, pii-proxy is English.
+
+```typescript
+import { PrivacyProxy } from 'pii-proxy';
+import { thai } from 'pii-proxy/packs/th';
+
+const proxy = new PrivacyProxy({ use: [thai()] });
+```
+
+| Pack | Adds |
+|---|---|
+| [`pii-proxy/packs/th`](src/packs/th/README.md) | Thai names, national IDs, phone numbers, column headers and titles |
+
+Writing one is a function returning `{ detectors?, generators?, headers?, titles? }` — see [`src/packs/th`](src/packs/th/index.ts). Generators receive a context: `attempt` (widen the range when an earlier fake was taken), a seeded `rng`, `hints` (e.g. the sex a title implies) and `count` (values of this type so far, for numbered labels such as `withheld('address')` → `[address withheld #3]`).
+
+## Masking files (`pii-proxy/files`)
+
+Spreadsheets and CSV are masked column by column; text goes through the detectors plus every value the map already holds.
+
+```typescript
+import { PrivacyProxy } from 'pii-proxy';
+import { maskFiles } from 'pii-proxy/files';
+
+const proxy = new PrivacyProxy();
+const { results, skipped } = await maskFiles([
+  { name: 'payroll-09.xlsx', bytes: payroll },
+  { name: 'bank-09.csv', bytes: bank },
+], proxy);
+// results[0].files   → [{ name: 'payroll-09 (masked).csv', mimeType: 'text/csv', bytes }]
+// results[0].columns → [{ header: 'EmployeeId', type: 'employee_id' }, { header: 'FirstName', type: 'first_name' }, …]
+```
+
+- **Columns by header, then by values.** `FirstName`, `Surname`, `Email`, `Phone` — plus any headers a pack adds — name a column's type; a column whose header says nothing is typed when most of its values are emails, phones or national IDs.
+- **Everything else untouched.** Departments, positions, amounts and dates stay exactly as they were, so totals computed from the masked copy equal the originals.
+- **Full names rebuilt from their parts.** `Mr. John Smith` becomes the same row's title with its masked first and last name, in the same layout, and the pairing is linked so the whole name is caught in free text too.
+- **Batches are consistent.** Every personal value of a batch is reserved before any fake is made; with the map persisted, next month's files get the same fakes.
+- **One CSV per sheet.** A workbook comes back as CSV, with a BOM so Excel opens non-Latin text correctly.
+
 ## Security model
 
 pii-proxy is designed so that **real PII never reaches the cloud LLM**.
@@ -264,7 +308,7 @@ pii-proxy is designed so that **real PII never reaches the cloud LLM**.
 ```
 
 - **Detection is local.** Regex runs in-process. The LLM detector calls a model on your machine or your private network — never a cloud API.
-- **The bijective map is sensitive.** It maps real values to fakes — treat it like the data itself. Encrypt at rest, scope per session, and control access. Use `proxy.getMap().serialize()` for persistence; the format is a JSON array of `[real, fake]` pairs.
+- **The bijective map is sensitive.** It maps real values to fakes — treat it like the data itself. Encrypt at rest, scope per session, and control access. Use `proxy.getMap().serialize()` for persistence; the format is a JSON array of `[real, fake]` pairs, with the type third when it is known.
 - **Unmask is deterministic.** Same map always produces the same reversal. No network calls, no side effects.
 - **Round-trip integrity.** Every `mask()` → `unmask()` cycle restores the original text exactly. This is tested on every commit.
 
@@ -404,6 +448,7 @@ See [`experiments/`](experiments/) for every script, every result, every caveat.
 - [x] **v0.2** — Pluggable entity detection — bring your own detectors (local LLM, custom regex). Layered pipeline: fast regex first, LLM for names/locations/domain-specific entities
 - [x] **Model: training recipe** — reproducible fine-tune pipeline ([exps 002–005](experiments/)): `pii-proxy-ner` matches NVIDIA's flagship `gliner-PII` at 3x smaller base, trained in 39 min for ~$8. `pii-proxy-learn` CLI labels your own traces for domain fine-tunes
 - [x] **Model: validation** — out-of-distribution pipeline benchmark vs Microsoft Presidio ([exp 006](experiments/006-presidio-head-to-head/)): 74.0% vs 42.0% F1, with adversarial audit of the methodology
+- [x] **Packs and files** — locale packs (`pii-proxy/packs/*`), spreadsheet and CSV masking (`pii-proxy/files`), typed map entries, fakes that never contain a real value
 - [ ] **v0.3** — Ship `pii-proxy-ner` as a drop-in detector (ONNX export, model-first default ordering) — exp 006 measures this at 17.4% → 74.0% F1 out of the box
 - [x] **Regex upgrades from exp 006's gap list** — IPv6 (IP F1 61%→96%) and context-gated ID detection (passport/SSN/driver-license/ID-card via keyword + token; regex layer 20.6%→32.0%, beating Presidio's pattern recognizers at 27.8%)
 - [ ] **v0.4** — Detection quality from exp 006 findings: type/confidence-aware span conflict resolution (replaces first-wins merge), locale-aware ID regexes

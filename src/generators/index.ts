@@ -1,9 +1,22 @@
 import { faker } from '@faker-js/faker';
 
-export type Generator = (real: string) => string;
+/** What a generator may use beyond the real value. Generators that need none of it ignore it. */
+export interface GeneratorContext {
+  /** 0 on the first try; higher when an earlier fake was taken, so a generator can widen its range. */
+  attempt: number;
+  /** Uniform in [0, 1). Seeded when the proxy is. */
+  rng: () => number;
+  /** What the surrounding record says about the value, e.g. the sex a title implies. */
+  hints: { sex?: 'male' | 'female' };
+  /** How many values of this type the map already holds — for numbered stand-ins. */
+  count: number;
+}
 
+export type Generator = (real: string, ctx: GeneratorContext) => string;
+
+// Reserved example domains: a fake address can never deliver to a stranger.
 const emailGenerator: Generator = () => {
-  return faker.internet.email().toLowerCase();
+  return faker.internet.exampleEmail().toLowerCase();
 };
 
 const phoneGenerator: Generator = (real) => {
@@ -45,8 +58,16 @@ const trackingGenerator: Generator = (real) => {
              .replace(/[0-9]/g, () => String(faker.number.int({ min: 0, max: 9 })));
 };
 
-const personNameGenerator: Generator = () => {
-  return `${faker.person.firstName()} ${faker.person.lastName()}`;
+const firstNameGenerator: Generator = (_real, ctx) => {
+  return faker.person.firstName(ctx?.hints?.sex);
+};
+
+const lastNameGenerator: Generator = () => {
+  return faker.person.lastName();
+};
+
+const personNameGenerator: Generator = (_real, ctx) => {
+  return `${faker.person.firstName(ctx?.hints?.sex)} ${faker.person.lastName()}`;
 };
 
 const organizationGenerator: Generator = () => {
@@ -70,6 +91,23 @@ const dateGenerator: Generator = (real) => {
   return dayFirst ? `${d}${sep}${m}${sep}${y}` : `${y}${sep}${m}${sep}${d}`;
 };
 
+/** An employee or customer code: letters kept, the first two digits kept (they often encode a year), the rest new. */
+const employeeIdGenerator: Generator = (real, ctx) => {
+  const m = real.match(/^([^\d]*)(\d+)(.*)$/);
+  if (!m) return formatPreservingGenerator(real, ctx);
+  const [, prefix, digits, rest] = m;
+  const keep = digits.length > 3 ? 2 : 0;
+  return prefix + digits.slice(0, keep) + faker.string.numeric({ length: digits.length - keep, allowLeadingZeros: true }) + rest;
+};
+
+/**
+ * A value withheld outright rather than faked — an address, a bank account:
+ * `[address withheld #3]`. Numbered, so each real value keeps one label.
+ */
+export function withheld(label: string): Generator {
+  return (_real, ctx) => `[${label} withheld #${ctx.count + 1 + ctx.attempt}]`;
+}
+
 const formatPreservingGenerator: Generator = (real) => {
   return real.replace(/[A-Z]/g, () => faker.string.alpha({ length: 1, casing: 'upper' }))
              .replace(/[a-z]/g, () => faker.string.alpha({ length: 1, casing: 'lower' }))
@@ -85,12 +123,15 @@ export const generators: Record<string, Generator> = {
   url: urlGenerator,
   tracking_number: trackingGenerator,
   person_name: personNameGenerator,
+  first_name: firstNameGenerator,
+  last_name: lastNameGenerator,
   organization: organizationGenerator,
   location: locationGenerator,
   date_of_birth: dateGenerator,
   date: dateGenerator,
   address: locationGenerator,
   national_id: formatPreservingGenerator,
+  employee_id: employeeIdGenerator,
   medical_record: formatPreservingGenerator,
   insurance_id: formatPreservingGenerator,
   passport_number: formatPreservingGenerator,
