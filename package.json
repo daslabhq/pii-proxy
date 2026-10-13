@@ -21,6 +21,10 @@
     "./packs/th": {
       "import": "./dist/packs/th/index.js",
       "types": "./dist/packs/th/index.d.ts"
+    },
+    "./packs/hr": {
+      "import": "./dist/packs/hr/index.js",
+      "types": "./dist/packs/hr/index.d.ts"
     }
   },
   "bin": {

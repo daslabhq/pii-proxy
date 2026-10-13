@@ -2,6 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import { zipSync, strToU8 } from 'fflate';
 import { PrivacyProxy } from '../src/index.js';
 import { thai, isThaiNationalId } from '../src/packs/th/index.js';
+import { hr } from '../src/packs/hr/index.js';
 import { maskFiles, maskTable, maskText, detectColumns, parseCsv, toCsv, readXlsx, excelDate, fileKind } from '../src/files/index.js';
 
 const PAYROLL = [
@@ -11,7 +12,7 @@ const PAYROLL = [
   ['EMP66026', 'นายทดสอบชัย รักดี', 'Mr.Thodsobchai Rakdee', 'นาย', 'ทดสอบชัย', 'รักดี', 'Mr.', 'Thodsobchai', 'Rakdee', 'ฝ่ายคลังสินค้า', '0', '18000'],
 ];
 
-const proxy = () => new PrivacyProxy({ use: [thai()], seed: 7 });
+const proxy = () => new PrivacyProxy({ use: [thai(), hr()], seed: 7 });
 
 describe('csv and xlsx', () => {
   test('CSV round-trips quotes, commas, newlines and Thai', () => {
@@ -130,7 +131,7 @@ describe('files', () => {
   test('a map saved and loaded gives next month the same fakes', async () => {
     const first = proxy();
     const sep = await maskTable(PAYROLL, first);
-    const next = new PrivacyProxy({ use: [thai()], seed: 99 });
+    const next = new PrivacyProxy({ use: [thai(), hr()], seed: 99 });
     next.loadMap(first.getMap().serialize());
     const oct = await maskTable(PAYROLL, next);
     expect(oct.rows).toEqual(sep.rows);

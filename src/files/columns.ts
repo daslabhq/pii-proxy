@@ -50,15 +50,13 @@ async function typeOf(header: string, values: string[], proxy: PrivacyProxy): Pr
 const PERSON_PREFIX = '(?:emp|employee|staff|person|personnel|worker|customer|contact|member|patient|client|user|guest|student|full|display|real|legal)?';
 const LANG_SUFFIX = '(?:eng|en|th|local)?';
 
-/** Matched against the header lowercased with separators dropped: "Emp First Name" → "empfirstname". */
+/** Who anyone is, in any field: names, titles, IDs and contact details. Matched against the squashed header. */
 const ENGLISH: Array<[RegExp, string]> = [
   [new RegExp(`^${PERSON_PREFIX}(?:firstname|givenname|forename|fname)${LANG_SUFFIX}$`), 'first_name'],
   [new RegExp(`^${PERSON_PREFIX}(?:lastname|surname|familyname|lname)${LANG_SUFFIX}$`), 'last_name'],
   [new RegExp(`^${PERSON_PREFIX}name${LANG_SUFFIX}$`), 'person_name'],
   [new RegExp(`^${PERSON_PREFIX}fullname${LANG_SUFFIX}$`), 'person_name'],
-  [/^(?:approver|approvedby|auditor|organizer|organiser|reviewer|checker|requester|requestedby|preparedby|createdby)(?:eng|en|th)?$/, 'person_name'],
   [new RegExp(`^(?:emp|employee|person)?(?:title|prefix|salutation)${LANG_SUFFIX}$`), 'title'],
-  [/^(?:emp|employee|staff|personnel|worker)(?:code|id|no|number|num)$/, 'employee_id'],
   [/(?:nationalid|citizenid|idcard|idcardno|idno|passport(?:no|number)?|taxid|ssn|socialsecurity(?:no|number|id))/, 'national_id'],
   [/^(?:e?mail|emailaddress|.*email)$/, 'email'],
   [/(?:phone|mobile|telephone|^tel(?:no)?$|^fax)/, 'phone'],
@@ -66,13 +64,22 @@ const ENGLISH: Array<[RegExp, string]> = [
   [/(?:bankaccount|accountno|accountnumber|^iban$|bankacc)/, 'bank_account'],
 ];
 
-/** A type, null when a rule says the header is not personal, undefined when nothing matched. */
+/**
+ * A type, null when a rule says the header is not personal, undefined when
+ * nothing matched. Pack rules come first and see the header both as written
+ * (an item number like "14." dropped) and squashed like the core's own.
+ */
 function typeFromHeader(header: string, packRules: Array<[RegExp, string | null]>): string | null | undefined {
   const plain = header.trim().replace(/^\d+\.\s*/, '');
-  for (const [re, type] of packRules) if (re.test(plain)) return type;
-  const word = header.toLowerCase().replace(/[\s_\-.()/]+/g, '');
+  const word = squash(header);
+  for (const [re, type] of packRules) if (re.test(plain) || (word && re.test(word))) return type;
   if (!word) return undefined;
   return ENGLISH.find(([re]) => re.test(word))?.[1];
+}
+
+/** "Emp First Name" → "empfirstname". */
+function squash(header: string): string {
+  return header.toLowerCase().replace(/[\s_\-.()/]+/g, '');
 }
 
 // ─── By values ──────────────────────────────────────────────────

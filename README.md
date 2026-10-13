@@ -253,9 +253,12 @@ import { thai } from 'pii-proxy/packs/th';
 const proxy = new PrivacyProxy({ use: [thai()] });
 ```
 
-| Pack | Adds |
-|---|---|
-| [`pii-proxy/packs/th`](src/packs/th/README.md) | Thai names, national IDs, phone numbers, column headers and titles |
+| Pack | Kind | Adds |
+|---|---|---|
+| [`pii-proxy/packs/th`](src/packs/th/README.md) | locale | Thai names, national IDs, phone numbers, column headers and titles |
+| [`pii-proxy/packs/hr`](src/packs/hr/README.md) | domain | Employee codes, sign-off columns; addresses and bank accounts withheld |
+
+Locale packs own **words** — names, national ID formats, titles, what a column is called in that language. Domain packs own **rules** — which columns identify someone in that field and how each is treated. So they combine without a pack per pair: `use: [thai(), hr()]`.
 
 Writing one is a function returning `{ detectors?, generators?, headers?, titles? }` — see [`src/packs/th`](src/packs/th/index.ts). Generators receive a context: `attempt` (widen the range when an earlier fake was taken), a seeded `rng`, `hints` (e.g. the sex a title implies) and `count` (values of this type so far, for numbered labels such as `withheld('address')` → `[address withheld #3]`).
 
@@ -265,9 +268,10 @@ Spreadsheets and CSV are masked column by column; text goes through the detector
 
 ```typescript
 import { PrivacyProxy } from 'pii-proxy';
+import { hr } from 'pii-proxy/packs/hr';
 import { maskFiles } from 'pii-proxy/files';
 
-const proxy = new PrivacyProxy();
+const proxy = new PrivacyProxy({ use: [hr()] });
 const { results, skipped } = await maskFiles([
   { name: 'payroll-09.xlsx', bytes: payroll },
   { name: 'bank-09.csv', bytes: bank },
