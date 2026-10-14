@@ -1,0 +1,49 @@
+# Publishes to npm when package.json carries a version npm doesn't have yet.
+# Bump the version, push to main, done: no token, no login, no one-time password.
+#
+# Auth is npm trusted publishing: GitHub mints a short-lived OIDC identity for
+# this workflow and npm accepts it for pii-proxy, because the package's
+# settings on npmjs.com name this repo and this file as its trusted publisher.
+# The same identity signs a provenance statement linking each release to the
+# commit and run that built it.
+name: Publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm 11.5.1 or later.
+      - run: npm install -g npm@latest
+
+      - run: bun install
+      - run: bun run build
+      - run: bun test
+
+      - name: Publish if this version is new
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if npm view "pii-proxy@$version" version >/dev/null 2>&1; then
+            echo "pii-proxy@$version is already on npm; nothing to publish."
+            exit 0
+          fi
+          npm publish --provenance --access public

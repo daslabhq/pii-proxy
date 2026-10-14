@@ -28,7 +28,7 @@
     }
   },
   "bin": {
-    "pii-proxy-learn": "./bin/learn.ts"
+    "pii-proxy-learn": "bin/learn.ts"
   },
   "scripts": {
     "build": "tsc",
