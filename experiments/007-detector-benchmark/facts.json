@@ -1,0 +1,80 @@
+{
+  "params": {
+    "gliner2-pii": 307098645,
+    "nvidia-gliner-pii": 445463040,
+    "pii-proxy-ner": 152648704,
+    "pii-proxy-24": 152648704,
+    "gliner-multi-pii": 288949504,
+    "knowledgator-pii": 166023936,
+    "openai-privacy-filter": 1399486865
+  },
+  "checkpoint_files": [
+    "gliner_config.json",
+    "optimizer.pt",
+    "pytorch_model.bin",
+    "rng_state.pth",
+    "scheduler.pt",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "trainer_state.json"
+  ],
+  "checkpoint_dirs": [
+    "checkpoint-31000",
+    "checkpoint-31220"
+  ],
+  "trainer_state": {
+    "best_global_step": null,
+    "best_metric": null,
+    "best_model_checkpoint": null,
+    "epoch": 5.0,
+    "eval_steps": 500,
+    "global_step": 31220,
+    "is_hyper_param_search": false,
+    "is_local_process_zero": true,
+    "is_world_process_zero": true,
+    "logging_steps": 10,
+    "max_steps": 31220,
+    "num_input_tokens_seen": 0,
+    "num_train_epochs": 5,
+    "save_steps": 500,
+    "stateful_callbacks": {
+      "TrainerControl": {
+        "args": {
+          "should_epoch_stop": false,
+          "should_evaluate": false,
+          "should_log": false,
+          "should_save": true,
+          "should_training_stop": true
+        },
+        "attributes": {}
+      }
+    },
+    "total_flos": 0.0,
+    "train_batch_size": 16,
+    "trial_name": null,
+    "trial_params": null
+  },
+  "log_tail": [
+    {
+      "epoch": 4.996796925048046,
+      "grad_norm": 38.13721466064453,
+      "learning_rate": 7.473841554559044e-09,
+      "loss": 1.6171279907226563,
+      "step": 31200
+    },
+    {
+      "epoch": 4.998398462524023,
+      "grad_norm": 47.36934280395508,
+      "learning_rate": 3.914869385721404e-09,
+      "loss": 2.8923954010009765,
+      "step": 31210
+    },
+    {
+      "epoch": 5.0,
+      "grad_norm": 252.0311279296875,
+      "learning_rate": 3.5589721688376403e-10,
+      "loss": 3.512126922607422,
+      "step": 31220
+    }
+  ]
+}

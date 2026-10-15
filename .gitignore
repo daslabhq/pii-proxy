@@ -12,3 +12,8 @@ experiments/006-presidio-head-to-head/data/*
 !experiments/006-presidio-head-to-head/data/nemotron_labels.json
 experiments/006-presidio-head-to-head/out/
 __pycache__/
+experiments/007-detector-benchmark/out/
+experiments/007-detector-benchmark/out-repro/
+experiments/007-detector-benchmark/out-smoke/
+experiments/007-detector-benchmark/data/*
+!experiments/007-detector-benchmark/data/thai.jsonl

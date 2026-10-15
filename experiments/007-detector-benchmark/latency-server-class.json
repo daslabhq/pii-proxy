@@ -1,0 +1,90 @@
+[
+  {
+    "model": "gliner2-pii",
+    "labels": 42,
+    "n": 30,
+    "threads": 2,
+    "machine": "x86_64",
+    "mean_words": 441,
+    "ms_median": 2582,
+    "ms_p90": 3192,
+    "cpu": "2 CPU cores, one container"
+  },
+  {
+    "model": "nvidia-gliner-pii",
+    "labels": 55,
+    "n": 30,
+    "threads": 2,
+    "machine": "x86_64",
+    "mean_words": 441,
+    "ms_median": 7077,
+    "ms_p90": 9518,
+    "cpu": "2 CPU cores, one container"
+  },
+  {
+    "model": "pii-proxy-ner",
+    "labels": 55,
+    "n": 30,
+    "threads": 2,
+    "machine": "x86_64",
+    "mean_words": 441,
+    "ms_median": 1344,
+    "ms_p90": 1767,
+    "cpu": "2 CPU cores, one container"
+  },
+  {
+    "model": "pii-proxy-24",
+    "labels": 24,
+    "n": 30,
+    "threads": 2,
+    "machine": "x86_64",
+    "mean_words": 441,
+    "ms_median": 1100,
+    "ms_p90": 1428,
+    "cpu": "2 CPU cores, one container"
+  },
+  {
+    "model": "gliner-multi-pii",
+    "labels": 36,
+    "n": 30,
+    "threads": 2,
+    "machine": "x86_64",
+    "mean_words": 441,
+    "ms_median": 2442,
+    "ms_p90": 3258,
+    "cpu": "2 CPU cores, one container"
+  },
+  {
+    "model": "knowledgator-pii",
+    "labels": 34,
+    "n": 30,
+    "threads": 2,
+    "machine": "x86_64",
+    "mean_words": 441,
+    "ms_median": 1521,
+    "ms_p90": 2150,
+    "cpu": "2 CPU cores, one container"
+  },
+  {
+    "model": "openai-privacy-filter",
+    "labels": 0,
+    "n": 30,
+    "threads": 2,
+    "machine": "x86_64",
+    "mean_words": 441,
+    "ms_median": 2557,
+    "ms_p90": 3276,
+    "cpu": "2 CPU cores, one container"
+  },
+  {
+    "model": "presidio",
+    "labels": 0,
+    "n": 30,
+    "threads": 2,
+    "machine": "x86_64",
+    "mean_words": 441,
+    "ms_median": 129,
+    "ms_p90": 169,
+    "cpu": "2 CPU cores, one container"
+  }
+]

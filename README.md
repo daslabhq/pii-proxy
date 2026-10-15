@@ -358,6 +358,34 @@ bun run examples/anthropic-agent.ts
 
 ## Benchmarks
 
+### Open PII models in six languages, on long letters and on Thai ([exp 007](experiments/007-detector-benchmark/))
+
+Before shipping a model detector by default: `pii-proxy-ner` against
+[OpenAI Privacy Filter](https://huggingface.co/openai/privacy-filter),
+[GLiNER2-PII](https://huggingface.co/fastino/gliner2-privacy-filter-PII-multi),
+NVIDIA's `gliner-PII` and three more. Share of personal data fully masked
+(every letter and digit inside a detection, of any type):
+
+| | identifiers, 6 languages¹ | everything ai4privacy labels, EN / other 5 | SPY (long letters) | Thai² | CPU, 2 cores |
+|---|---|---|---|---|---|
+| OpenAI Privacy Filter | **95–98%** | 80.4% / 78–81% | **86.7%** | 70.9% | 2.6 s |
+| knowledgator gliner-pii-base | 84–88% | **89.1% / 86–89%** | 83.0% | — | 1.5 s |
+| GLiNER2-PII | 76–85% | 86.9% / 80–86% | 82.0% | **91.5%** | 2.6 s |
+| NVIDIA gliner-PII | 73–85% | 87.9% / 79–85% | 82.8% | 42.1% | 7.1 s |
+| **`pii-proxy-ner`** | 68–83% | 85.4% / 73–80% | 83.8% | 33.9% | **1.3 s** |
+
+¹ names, emails, phones, ID numbers, IPs, usernames, passwords.
+² with a Thai word segmenter in front of the model.
+
+The filter masks nearly every identifier in every language and leaves times
+of day, states, countries and gender. knowledgator masks the most overall, but
+a quarter of its flags are not PII. `pii-proxy-ner` is the fastest and ties
+NVIDIA on Nemotron, but trails it on ai4privacy and drops outside English.
+On Thai GLiNER2-PII leads by 20 points, once the text is split into words. GLiNER v1
+checkpoints (ours, NVIDIA's) stop reading after 384 tokens, about 300 words:
+window long text. Full tables, typed F1, the scoring conventions and why they
+matter, speed, size and licences: [exp 007](experiments/007-detector-benchmark/).
+
 ### vs Microsoft Presidio, out of distribution ([exp 006](experiments/006-presidio-head-to-head/))
 
 The comparison that matters for choosing a tool: both systems on a dataset
@@ -393,10 +421,10 @@ Fine-tuning `gliner_small-v2.1` on the **full 55-label Nemotron-PII** vocabulary
 
 | Model | Base | Fine F1 | Precision | Recall |
 |---|---|---|---|---|
-| **`pii-proxy` (`gliner_small-v2.1`)** | small (~50M) | **91.5%** | 90.2% | 92.8% |
-| `nvidia/gliner-PII` | large (~300M) | 90.9% | 90.6% | 91.3% |
+| **`pii-proxy` (`gliner_small-v2.1`)** | 153M parameters | **91.5%** | 90.2% | 92.8% |
+| `nvidia/gliner-PII` | 445M parameters | 90.9% | 90.6% | 91.3% |
 
-Both models on the **same** 500-record held-out `test` set (hash-verified identical), each at its best native-label query, threshold 0.5, leakage-checked 0/500 — the eval is [`head_to_head_eval.py`](experiments/head_to_head_eval.py), both query strings published. **Read +0.6pp as a statistical tie** (500-record test ≈ ±0.2pp noise), not "we beat NVIDIA" — the real claim is *flagship quality from a base a third the size, with a reproducible recipe* (NVIDIA shipped weights, no recipe). On the healthcare slice the order reverses by a hair: NVIDIA 91.0%, pii-proxy 90.8%. **Caveat:** both models trained on Nemotron, so this measures in-distribution reproduction — the out-of-distribution result ([exp 006](experiments/006-presidio-head-to-head/)) is where the fine-tune earns its keep.
+Both models on the **same** 500-record held-out `test` set (hash-verified identical), each at its best native-label query, threshold 0.5, leakage-checked 0/500 — the eval is [`head_to_head_eval.py`](experiments/head_to_head_eval.py), both query strings published. **Read +0.6pp as a statistical tie** (exp 007's rerun on the same records puts the difference's 95% interval at −0.1 to +1.3pp), not "we beat NVIDIA" — the real claim is *flagship quality from a base a third the size, with a reproducible recipe* (NVIDIA shipped weights, no recipe). On the healthcare slice the order reverses by a hair: NVIDIA 91.0%, pii-proxy 90.8%. **Caveat:** both models trained on Nemotron, so this measures in-distribution reproduction — the out-of-distribution result ([exp 006](experiments/006-presidio-head-to-head/)) is where the fine-tune earns its keep.
 
 ### Healthcare subset head-to-head ([exp 004](experiments/004-finetune-fine-labels/))
 
@@ -450,11 +478,11 @@ See [`experiments/`](experiments/) for every script, every result, every caveat.
 
 - [x] **v0.1** — Regex detection, faker replacement, bijective round-trip
 - [x] **v0.2** — Pluggable entity detection — bring your own detectors (local LLM, custom regex). Layered pipeline: fast regex first, LLM for names/locations/domain-specific entities
-- [x] **Model: training recipe** — reproducible fine-tune pipeline ([exps 002–005](experiments/)): `pii-proxy-ner` matches NVIDIA's flagship `gliner-PII` at 3x smaller base, trained in 39 min for ~$8. `pii-proxy-learn` CLI labels your own traces for domain fine-tunes
-- [x] **Model: validation** — out-of-distribution pipeline benchmark vs Microsoft Presidio ([exp 006](experiments/006-presidio-head-to-head/)): 74.0% vs 42.0% F1, with adversarial audit of the methodology
+- [x] **Model: training recipe** — reproducible fine-tune pipeline ([exps 002–005](experiments/)): `pii-proxy-ner` matches NVIDIA's flagship `gliner-PII` on Nemotron with a third of its parameters (153M vs 445M); a 3-epoch run of the recipe takes 39 min for ~$8. `pii-proxy-learn` CLI labels your own traces for domain fine-tunes
+- [x] **Model: validation** — out-of-distribution pipeline benchmark vs Microsoft Presidio ([exp 006](experiments/006-presidio-head-to-head/)): 75.7% vs 42.0% F1, with adversarial audit of the methodology
 - [x] **Packs and files** — locale packs (`pii-proxy/packs/*`), spreadsheet and CSV masking (`pii-proxy/files`), typed map entries, fakes that never contain a real value
-- [ ] **v0.3** — Ship a model detector by default (ONNX export, model-first default ordering). Benchmark first: `pii-proxy-ner` against [GLiNER2-PII](https://huggingface.co/fastino/gliner2-privacy-filter-PII-multi) (Apache 2.0, 42 types, nested names, 7 languages) and OpenAI Privacy Filter, on SPY (real legal and medical text) and the exp 006 harness — then ship the winner or a fine-tune of it. exp 006 measured `pii-proxy-ner` at 17.4% → 74.0% F1 out of the box
-- [ ] **Pack adapters** — a pack may carry a LoRA adapter for the model detector (GLiNER2 loads and swaps 2–10 MB adapters natively). Locale packs own the adapter (language is what a base model lacks); domain packs stay labels plus rules (zero-shot handles domain concepts), so `use: [thai(), medical()]` is one pass, not two. First: a Thai adapter trained on synthetic text from the Thai pack's own generators — the strongest open PII model (GLiNER2-PII) was neither trained nor measured on Thai; measure whether Thai needs word segmentation in front of the model
+- [ ] **v0.3** — Ship a model detector by default (ONNX export, model-first default ordering). Benchmarked in [exp 007](experiments/007-detector-benchmark/): OpenAI Privacy Filter masks the most identifiers in six languages (95–98%), GLiNER2-PII leads on Thai with word segmentation (91.5%), `pii-proxy-ner` is the fastest (1.3 s per 450-word letter on 2 CPU cores) and needs its 55-label checkpoint published. Choosing between them is next
+- [ ] **Pack adapters** — a pack may carry a LoRA adapter for the model detector (GLiNER2 loads and swaps 2–10 MB adapters natively). Locale packs own the adapter (language is what a base model lacks); domain packs stay labels plus rules (zero-shot handles domain concepts), so `use: [thai(), medical()]` is one pass, not two. First: Thai. [exp 007](experiments/007-detector-benchmark/) measured it: with a word segmenter in front, GLiNER2-PII masks 91% of Thai names without Thai fine-tuning (50% without the segmenter), so segmentation comes before any adapter
 - [ ] **Domain packs, when there is data to build them against** — medical (record and insurance numbers, dates shifted consistently per patient, ages 90+ grouped), legal (case and docket numbers, parties named in captions)
 - [x] **Regex upgrades from exp 006's gap list** — IPv6 (IP F1 61%→96%) and context-gated ID detection (passport/SSN/driver-license/ID-card via keyword + token; regex layer 20.6%→32.0%, beating Presidio's pattern recognizers at 27.8%)
 - [ ] **v0.4** — Detection quality from exp 006 findings: type/confidence-aware span conflict resolution (replaces first-wins merge), locale-aware ID regexes

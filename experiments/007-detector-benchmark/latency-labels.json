@@ -1,0 +1,74 @@
+[
+  {
+    "model": "pii-proxy-ner",
+    "labels": 5,
+    "n": 20,
+    "threads": 2,
+    "ms_median": 1012,
+    "cpu": "2 CPU cores / 4 GB"
+  },
+  {
+    "model": "pii-proxy-ner",
+    "labels": 20,
+    "n": 20,
+    "threads": 2,
+    "ms_median": 1127,
+    "cpu": "2 CPU cores / 4 GB"
+  },
+  {
+    "model": "pii-proxy-ner",
+    "labels": 55,
+    "n": 20,
+    "threads": 2,
+    "ms_median": 1355,
+    "cpu": "2 CPU cores / 4 GB"
+  },
+  {
+    "model": "nvidia-gliner-pii",
+    "labels": 5,
+    "n": 20,
+    "threads": 2,
+    "ms_median": 5349,
+    "cpu": "2 CPU cores / 4 GB"
+  },
+  {
+    "model": "nvidia-gliner-pii",
+    "labels": 20,
+    "n": 20,
+    "threads": 2,
+    "ms_median": 5706,
+    "cpu": "2 CPU cores / 4 GB"
+  },
+  {
+    "model": "nvidia-gliner-pii",
+    "labels": 55,
+    "n": 20,
+    "threads": 2,
+    "ms_median": 6934,
+    "cpu": "2 CPU cores / 4 GB"
+  },
+  {
+    "model": "gliner2-pii",
+    "labels": 5,
+    "n": 20,
+    "threads": 2,
+    "ms_median": 1878,
+    "cpu": "2 CPU cores / 4 GB"
+  },
+  {
+    "model": "gliner2-pii",
+    "labels": 20,
+    "n": 20,
+    "threads": 2,
+    "ms_median": 2136,
+    "cpu": "2 CPU cores / 4 GB"
+  },
+  {
+    "model": "gliner2-pii",
+    "labels": 42,
+    "n": 20,
+    "threads": 2,
+    "ms_median": 2506,
+    "cpu": "2 CPU cores / 4 GB"
+  }
+]

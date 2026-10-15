@@ -1,0 +1,494 @@
+{
+ "what": "A random sample (seed 7) of 60 of GLiNER2-PII's SPY test false positives (exact match, threshold 0.5, flattened) that overlap no gold span and no regex-found email/URL/phone, each read and judged by hand: is the span personal data the dataset left unlabeled?",
+ "counts": {
+  "unlabeled PII": 55,
+  "not PII": 5
+ },
+ "sample": [
+  {
+   "id": "spy-medical-351",
+   "bucket": "USERNAME",
+   "type": "username",
+   "span": "dr_rachellee",
+   "ctx": "543 East Avenue, New Haven, CT 06511. She has a username of dr_rachellee on her medical forum. Her identifier fo",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-2100",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Universal Realty",
+   "ctx": " my license number is 4244313479551. You can also check out Universal Realty's website at https://universal-realty.c",
+   "verdict": "not PII",
+   "why": "organisation, not a person"
+  },
+  {
+   "id": "spy-medical-1313",
+   "bucket": "ADDRESS",
+   "type": "street_address",
+   "span": "10440 Cherry St.",
+   "ctx": ", who has asked me to attend the gastrointestinal clinic at 10440 Cherry St., San Francisco, CA 94103, where Dr. Eth",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-674",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Michael Moore",
+   "ctx": "ached at (512) 234-5678 for some guidance.   Her colleague, Michael Moore has also been helpful, he can be found ",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-1003",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Emily Rodriguez",
+   "ctx": "e a detailed report. I've also consulted with my colleague, Emily Rodriguez, emily.rodriguez@school.edu, who sugges",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3290",
+   "bucket": "ADDRESS",
+   "type": "street_address",
+   "span": "2345 Health Street",
+   "ctx": " his phone number is 444.222.3333. His office is located at 2345 Health Street, Anytown, CA 12345. They have an identi",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-1303",
+   "bucket": "ID_NUM",
+   "type": "account_id",
+   "span": "VEN1234",
+   "ctx": " 1969 Sarah Knoll Apt. 646 , and the vendor's identifier is VEN1234.  Thank you for your time and considera",
+   "verdict": "not PII",
+   "why": "a vendor's code, not a person's"
+  },
+  {
+   "id": "spy-medical-942",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Rachel Santos",
+   "ctx": "d with my username michael92?  By the way, my colleague Dr. Rachel Santos from the New York Hospital at https://n",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3929",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Samantha Taylor",
+   "ctx": "e Apt. 334 , and also take into account the research of Dr. Samantha Taylor, who published an article on the topic ",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-812",
+   "bucket": "ADDRESS",
+   "type": "address",
+   "span": "123 Main St. Anytown, CA 12345",
+   "ctx": "owned lawyer from Brown and Associates Law Firm, located at 123 Main St. Anytown, CA 12345, phone number +1.234.567.8901. Accordin",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-2901",
+   "bucket": "ADDRESS",
+   "type": "street_address",
+   "span": "123 Smith Lane",
+   "ctx": "LTH (639-4325) to obtain my medical records. The address is 123 Smith Lane, Anytown, CA 12345. My patient ID is 06",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-2989",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "David Johnson",
+   "ctx": "se against the seller. I've also consulted with contractor, David Johnson, who can be contacted at +1.245.789.455",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-512",
+   "bucket": "PHONE",
+   "type": "phone_number",
+   "span": "03573 94100",
+   "ctx": "sors.com. My contact information, including my phone number 03573 94100, is available on my website.  In light ",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-1183",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Michael Patel",
+   "ctx": "w.com, and his phone number is 415-555-5678. His colleague, Michael Patel, address: 123 Main St, San Francisco, C",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-1872",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Dr. Smith",
+   "ctx": "ead-hicks.info/mainprivacy.html. My primary care physician, Dr. Smith, has been treating me at his office loc",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-1655",
+   "bucket": "USERNAME",
+   "type": "username",
+   "span": "chrlee",
+   "ctx": "e, Christine Lee (email: christine.lee@newhr.com, username: chrlee), you can reach me at thomasjo@yahoo.co",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-972",
+   "bucket": "ADDRESS",
+   "type": "street_address",
+   "span": "1501 5th St",
+   "ctx": "m, and you can also stop by our office, which is located at 1501 5th St, New Castle, DE 19720.   That's where y",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-3362",
+   "bucket": "PHONE",
+   "type": "phone_number",
+   "span": "+14 23 987 6543",
+   "ctx": "ho is reachable at rachel.brown@jurisprudence.com or phone: +14 23 987 6543, working at https://lawandorder.net. I ",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-1256",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Lucas Brooks",
+   "ctx": "I'm seeking guidance from suggests I contact her associate, Lucas Brooks, at lb@lawfirm.com or 42012345. Additio",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3493",
+   "bucket": "ADDRESS",
+   "type": "street_address",
+   "span": "9842 Maplewood Dr",
+   "ctx": "ny further consultations. A patient named Olivia Brown from 9842 Maplewood Dr, Sugarland, TX 75143, has also been exp",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-1739",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Liam Chen",
+   "ctx": " about the success stories of patients who have visited Dr. Liam Chen at liamchen@example.com.   Specifically",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-830",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Alex Chen",
+   "ctx": "the time to respond. Moreover, I've talked to my colleague, Alex Chen, alex.chen@novamax.com, who suggested m",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3683",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Thomas Brown",
+   "ctx": "63 for reference.  I would appreciate any guidance from Dr. Thomas Brown, a renowned gastroenterologist from New",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-1710",
+   "bucket": "ADDRESS",
+   "type": "street_address",
+   "span": "123 Main St",
+   "ctx": "eat help. You can contact Samantha at her office located at 123 Main St, Anytown, CA 12345, or reach her at 555",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-3118",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Sophia Patel",
+   "ctx": " in this field. Additionally, feel free to reach out to Dr. Sophia Patel, a renowned labour lawyer, at sophia.pa",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3932",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Dr. Lee",
+   "ctx": " is related to the previous one. My primary care physician, Dr. Lee, can be contacted at susanlee@gmail.com",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-867",
+   "bucket": "USERNAME",
+   "type": "username",
+   "span": "sphp88",
+   "ctx": "el.com/, and has been kind enough to offer me her username, sphp88, to access some exclusive resources. Fu",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3844",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Emma Taylor",
+   "ctx": "51005656, who can provide access to my medical records. Dr. Emma Taylor, a leading expert in the field, has wri",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3968",
+   "bucket": "ADDRESS",
+   "type": "street_address",
+   "span": "123 Main St",
+   "ctx": "t https://www.insurancecare.com. Their office is located at 123 Main St, Baltimore, MD 21201.",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-1342",
+   "bucket": "NAME",
+   "type": "last_name",
+   "span": "Chen",
+   "ctx": " case and whether I should schedule an appointment with Dr. Chen.",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-691",
+   "bucket": "NAME",
+   "type": "first_name",
+   "span": "Samantha",
+   "ctx": "as dealt with similar cases in the past. Olivia thinks that Samantha would be the perfect person to help us ",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-3081",
+   "bucket": "PHONE",
+   "type": "phone_number",
+   "span": "1234567890",
+   "ctx": "Parker, who can be contacted at james.parker@company.com or 1234567890, to ensure a thorough review of our dat",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-650",
+   "bucket": "ADDRESS",
+   "type": "street_address",
+   "span": "123 Main St",
+   "ctx": "ng in labor law at **Brown and Co. Law Firm**, located at **123 Main St, Anytown, CA 95423**. You can find more",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3573",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Sophia Rodriguez",
+   "ctx": "   Additionally, I'd appreciate it if you could contact Dr. Sophia Rodriguez at sophia.rodriguez33@gmail.com, or rea",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-1847",
+   "bucket": "USERNAME",
+   "type": "username",
+   "span": "@USERNAME_TOKEN",
+   "ctx": "sure to update my followers on my personal Twitter account, @USERNAME_TOKEN. Thank you in advance for your time and",
+   "verdict": "not PII",
+   "why": "leaked template token in the source text"
+  },
+  {
+   "id": "spy-legal-4066",
+   "bucket": "USERNAME",
+   "type": "username",
+   "span": "aleexlee",
+   "ctx": "l advisor who's worked on similar cases. Alex's username is aleexlee, and you can reach him on his blog at h",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-1665",
+   "bucket": "NAME",
+   "type": "person",
+   "span": "Dr. Patel",
+   "ctx": "p alleviate these symptoms in the short-term? And also, can Dr. Patel explain how stress affects digestive he",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-1999",
+   "bucket": "NAME",
+   "type": "person",
+   "span": "landlord",
+   "ctx": "these issues from arising. Despite my repeated requests, my landlord has failed to address the problem, leav",
+   "verdict": "not PII",
+   "why": "common noun"
+  },
+  {
+   "id": "spy-medical-3354",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Dr. Thompson",
+   "ctx": " I want to make sure I provide all necessary information to Dr. Thompson, who I read about on https://www.health",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-1626",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Michael Brown",
+   "ctx": "ionally, you can reach out to our organization's president, Michael Brown, at michael.brown@example.com or visit ",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3761",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "David Kim",
+   "ctx": ". I've been thinking of sharing my medical records with Dr. David Kim, whose contact information is drdavidki",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-144",
+   "bucket": "ADDRESS",
+   "type": "street_address",
+   "span": "3456 Health Sciences Blvd",
+   "ctx": "ww. healthygut.com or visit Dr. Sophia Patel at her clinic, 3456 Health Sciences Blvd, Tampa, FL 33612. I'd like to get a sec",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3618",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Liam Brooks",
+   "ctx": "org/research/. Some of my friends have also recommended Dr. Liam Brooks, a primary care physician at 3456 Elm S",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-2518",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Olivia Brown",
+   "ctx": "if you know someone with similar experience, like my friend Olivia Brown, who got a better deal at Starbucks and",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-1430",
+   "bucket": "ADDRESS",
+   "type": "street_address",
+   "span": "345 E 59th St",
+   "ctx": "m.   The contract was drafted by our legal team, located at 345 E 59th St, New York, NY 10065, and it outlined th",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3913",
+   "bucket": "ID_NUM",
+   "type": "government_id",
+   "span": "RJ123456",
+   "ctx": ", address: 123 Main Street, New York, NY 10001, identifier: RJ123456.",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3766",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Thomas Brown",
+   "ctx": "iagnosis in treating respiratory illnesses. The author, Dr. Thomas Brown, can be reached at tbrown@medconnect.ne",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-2623",
+   "bucket": "USERNAME",
+   "type": "username",
+   "span": "victoria123",
+   "ctx": "on LinkedIn, complimenting me on my insight.   A user named victoria123 has reached out to me privately, offeri",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-1029",
+   "bucket": "PHONE",
+   "type": "phone_number",
+   "span": "9876543210",
+   "ctx": "ch with Dr. Lee at St. John's Hospital, his phone number is 9876543210 and you can reach him at emailelee@stjo",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-1350",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Rachel Patel",
+   "ctx": "ally, I've been thinking of reaching out to a legal expert, Rachel Patel, whose email is rpatel@lawfirm.com, for",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3449",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Maria Rodriguez",
+   "ctx": "://healthylife.com. I've also talked to your colleague, Dr. Maria Rodriguez, at mrodriguez@healthylife.com, and she",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-880",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Lucas Brooks",
+   "ctx": "e at https://linkedin.com/amelia.taylor.123. Her colleague, Lucas Brooks, who's an expert in contract law, had s",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3667",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Rachel Patel",
+   "ctx": "n. Dr. Smith, my primary care physician, referred me to Dr. Rachel Patel at rachel.patel@healthcare.com. She can",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-legal-840",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Michael Smith",
+   "ctx": "find attached a letter from our business partner in London, Michael Smith, who can be reached at +44 207 123 4567",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-4445",
+   "bucket": "ID_NUM",
+   "type": "account_id",
+   "span": "PatientLogin123456",
+   "ctx": "ients can submit their medical records using the identifier PatientLogin123456. Their research center is located at 12",
+   "verdict": "not PII",
+   "why": "a system-wide login identifier, not a person's"
+  },
+  {
+   "id": "spy-legal-2858",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Oliver Lee",
+   "ctx": "sights. I'd appreciate it if you could put me in touch with Oliver Lee, who I believe has handled similar case",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-2758",
+   "bucket": "PHONE",
+   "type": "phone_number",
+   "span": "011-25.347-2194",
+   "ctx": " her assistant, Emily Chen, at emily.chen@healthcare.com or 011-25.347-2194 for any further assistance. If needed, ",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-3223",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Sophia Patel",
+   "ctx": "your advice. Additionally, I was recommended to contact Dr. Sophia Patel from HealthCare Services at sophia.pate",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-1784",
+   "bucket": "NAME",
+   "type": "person",
+   "span": "Rohan",
+   "ctx": ", maybe it's somehow related?   Dr. Patel told his patient, Rohan, to make an appointment at +1.202.555.1",
+   "verdict": "unlabeled PII"
+  },
+  {
+   "id": "spy-medical-213",
+   "bucket": "NAME",
+   "type": "full_name",
+   "span": "Dr. Smith",
+   "ctx": "xt week, which is scheduled with my primary care physician, Dr. Smith, at the below 1177 Oak St. Apt. 100 Spr",
+   "verdict": "unlabeled PII"
+  }
+ ]
+}
