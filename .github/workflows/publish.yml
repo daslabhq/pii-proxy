@@ -33,7 +33,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       # Trusted publishing needs npm 11.5.1 or later.
-      - run: npm install -g npm@latest
+      - run: npm install -g npm@latest && npm --version
 
       - run: bun install
       - run: bun run build
@@ -46,4 +46,5 @@ jobs:
             echo "pii-proxy@$version is already on npm; nothing to publish."
             exit 0
           fi
-          npm publish --provenance --access public
+          # Verbose shows the trusted-publisher exchange, the first thing to read when a publish is refused.
+          npm publish --provenance --access public --loglevel verbose
