@@ -23,6 +23,7 @@ import { readXlsx, type Sheet } from './xlsx.js';
 
 export { detectColumns, type Column, type ColumnFinding } from './columns.js';
 export { maskTable, type MaskedTable } from './table.js';
+export { maskRecords, type MaskedRecords } from './records.js';
 export { parseCsv, toCsv } from './csv.js';
 export { readXlsx, excelDate, type Sheet } from './xlsx.js';
 

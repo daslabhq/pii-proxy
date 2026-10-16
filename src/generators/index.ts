@@ -81,6 +81,19 @@ const locationGenerator: Generator = (real) => {
   return faker.location.city();
 };
 
+const GUID = /^\{?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\}?$/i;
+
+function matchCase(fake: string, real: string): string {
+  return real === real.toUpperCase() ? fake.toUpperCase() : fake;
+}
+
+/** A birth date keeps its real year, so ages and age bands still compute; the day of the year is new. */
+const birthDateGenerator: Generator = (real, ctx) => {
+  const year = real.match(/\b(1[89]\d\d|20\d\d|2[45]\d\d)\b/)?.[1];
+  const fake = dateGenerator(real, ctx);
+  return year ? fake.replace(/\b(1[89]\d\d|20\d\d)\b/, year) : fake;
+};
+
 const dateGenerator: Generator = (real) => {
   const fake = faker.date.birthdate({ min: 1960, max: 2005, mode: 'year' });
   const sep = real.includes('/') ? '/' : real.includes('-') ? '-' : '.';
@@ -93,6 +106,8 @@ const dateGenerator: Generator = (real) => {
 
 /** An employee or customer code: letters kept, the first two digits kept (they often encode a year), the rest new. */
 const employeeIdGenerator: Generator = (real, ctx) => {
+  // An internal record id (a GUID) carries no shape worth keeping: a fresh one.
+  if (GUID.test(real.trim())) return matchCase(faker.string.uuid(), real);
   const m = real.match(/^([^\d]*)(\d+)(.*)$/);
   if (!m) return formatPreservingGenerator(real, ctx);
   const [, prefix, digits, rest] = m;
@@ -127,7 +142,7 @@ export const generators: Record<string, Generator> = {
   last_name: lastNameGenerator,
   organization: organizationGenerator,
   location: locationGenerator,
-  date_of_birth: dateGenerator,
+  date_of_birth: birthDateGenerator,
   date: dateGenerator,
   address: locationGenerator,
   national_id: formatPreservingGenerator,

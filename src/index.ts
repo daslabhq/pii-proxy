@@ -175,6 +175,15 @@ export class PrivacyProxy {
     return this.titles.find(([re]) => re.test(t))?.[1];
   }
 
+  /** The title a name starts with, as written ("Mr.", "นางสาว"), or undefined. */
+  titleOf(name: string): string | undefined {
+    for (const [re] of this.titles) {
+      const m = re.exec(name);
+      if (m && m.index === 0 && m[0]) return m[0] + (name.slice(m[0].length).match(/^\.?\s*/)?.[0] ?? '');
+    }
+    return undefined;
+  }
+
   getMap(): BijectiveMap {
     return this.map;
   }

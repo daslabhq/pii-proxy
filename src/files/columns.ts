@@ -54,10 +54,12 @@ const LANG_SUFFIX = '(?:eng|en|th|local)?';
 const ENGLISH: Array<[RegExp, string]> = [
   [new RegExp(`^${PERSON_PREFIX}(?:firstname|givenname|forename|fname)${LANG_SUFFIX}$`), 'first_name'],
   [new RegExp(`^${PERSON_PREFIX}(?:lastname|surname|familyname|lname)${LANG_SUFFIX}$`), 'last_name'],
+  [new RegExp(`^${PERSON_PREFIX}(?:middlename|mname|nickname)${LANG_SUFFIX}$`), 'first_name'],
+  [new RegExp(`^${PERSON_PREFIX}(?:birthdate|dateofbirth|dob|birthday)$`), 'date_of_birth'],
   [new RegExp(`^${PERSON_PREFIX}name${LANG_SUFFIX}$`), 'person_name'],
   [new RegExp(`^${PERSON_PREFIX}fullname${LANG_SUFFIX}$`), 'person_name'],
   [new RegExp(`^(?:emp|employee|person)?(?:title|prefix|salutation)${LANG_SUFFIX}$`), 'title'],
-  [/(?:nationalid|citizenid|idcard|idcardno|idno|passport(?:no|number)?|taxid|ssn|socialsecurity(?:no|number|id))/, 'national_id'],
+  [/(?:nationalid|citizenid|identitycard|identityno|idcard|idcardno|idno|passport(?:no|number)?|taxid|ssn|socialsecurity(?:no|number|id))/, 'national_id'],
   [/^(?:e?mail|emailaddress|.*email)$/, 'email'],
   [/(?:phone|mobile|telephone|^tel(?:no)?$|^fax)/, 'phone'],
   [/(?:address|street|^addr)/, 'address'],

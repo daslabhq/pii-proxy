@@ -285,6 +285,7 @@ const { results, skipped } = await maskFiles([
 - **Full names rebuilt from their parts.** `Mr. John Smith` becomes the same row's title with its masked first and last name, in the same layout, and the pairing is linked so the whole name is caught in free text too.
 - **Batches are consistent.** Every personal value of a batch is reserved before any fake is made; with the map persisted, next month's files get the same fakes.
 - **One CSV per sheet.** A workbook comes back as CSV, with a BOM so Excel opens non-Latin text correctly.
+- **Rows from a database or an API.** `maskRecords(rows, proxy)` takes the objects a driver returns and gives them back in the same shape: personal columns masked, every other cell untouched and in its own type. A name under a header nobody anticipated is still caught once the map knows it.
 
 ## Security model
 

@@ -27,21 +27,38 @@ export async function maskTable(rows: string[][], proxy: PrivacyProxy, finding?:
   proxy.reserve(personalValues(rows, columns));
   const [header = [], ...body] = rows;
   const shape = rowShape(columns);
+  const names = columns.filter((c) => c.type === 'person_name');
   let masked = 0;
-  const out: string[][] = [];
-  for (const row of body) {
-    const result = await maskRow(row, columns, shape, proxy);
-    masked += result.masked;
-    out.push(result.row);
+  // Parts first, in every row, so a full name can be rebuilt from its own row's fakes...
+  const out = body.map((row) => {
+    const parts = maskParts(row, columns, shape, proxy);
+    masked += parts.masked;
+    return parts.row;
+  });
+  // ...then the full names made of those parts, which teaches the map each whole name...
+  const rest: Array<[number, Column]> = [];
+  body.forEach((row, i) => names.forEach((col) => {
+    const value = row[col.index] ?? '';
+    if (!value.trim()) return;
+    const rebuilt = rebuildFromParts(value, row, out[i]!, shape, proxy);
+    if (rebuilt === null) rest.push([i, col]);
+    else { out[i]![col.index] = rebuilt; masked++; }
+  }));
+  // ...and only then the other names, so a manager named on a report's row gets the
+  // same fake as on their own row.
+  for (const [i, col] of rest) {
+    out[i]![col.index] = maskWholeName(body[i]![col.index]!, body[i]!, shape, proxy);
+    masked++;
   }
+  for (const row of out) masked += await sweep(row, columns, proxy);
   return { rows: [header, ...out], columns, people, masked };
 }
 
-async function maskRow(row: string[], columns: Column[], shape: RowShape, proxy: PrivacyProxy): Promise<{ row: string[]; masked: number }> {
+/** Every personal column except titles and full names, which are built from these. */
+function maskParts(row: string[], columns: Column[], shape: RowShape, proxy: PrivacyProxy): { row: string[]; masked: number } {
   const next = [...row];
-  const sex = proxy.sexOfTitle(shape.titles.map((i) => row[i]).find((t) => t?.trim()));
+  const sex = sexOf(row, shape, proxy);
   let masked = 0;
-  // Parts first: a full name is rebuilt from them.
   for (const col of columns) {
     if (col.type === 'title' || col.type === 'person_name') continue;
     const value = row[col.index] ?? '';
@@ -49,13 +66,6 @@ async function maskRow(row: string[], columns: Column[], shape: RowShape, proxy:
     next[col.index] = keepEdges(value, proxy.replace(value.trim(), col.type, { sex }));
     masked++;
   }
-  for (const col of columns.filter((c) => c.type === 'person_name')) {
-    const value = row[col.index] ?? '';
-    if (!value.trim()) continue;
-    next[col.index] = maskFullName(value, row, next, shape, proxy, sex);
-    masked++;
-  }
-  masked += await sweep(next, columns, proxy);
   return { row: next, masked };
 }
 
@@ -72,12 +82,17 @@ function rowShape(columns: Column[]): RowShape {
   return { titles: of('title'), firsts: of('first_name'), lasts: of('last_name') };
 }
 
+function sexOf(row: string[], shape: RowShape, proxy: PrivacyProxy): 'male' | 'female' | undefined {
+  return proxy.sexOfTitle(shape.titles.map((i) => row[i]).find((t) => t?.trim()));
+}
+
 /**
- * A full name made of this row's title, first and last name is rebuilt from
- * their fakes in the same layout ("Mr." + first + " " + last). Anything else
- * is faked whole, a leading title kept.
+ * A full name made of this row's title, first and last name, rebuilt from
+ * their fakes in the same layout ("Mr." + first + " " + last); null when the
+ * name is not made of them. The map learns the whole name, with and without
+ * its title, so the same person named anywhere else gets the same fake.
  */
-function maskFullName(value: string, row: string[], masked: string[], shape: RowShape, proxy: PrivacyProxy, sex: 'male' | 'female' | undefined): string {
+function rebuildFromParts(value: string, row: string[], masked: string[], shape: RowShape, proxy: PrivacyProxy): string | null {
   for (const t of [...shape.titles, -1]) {
     const title = t >= 0 ? row[t] ?? '' : '';
     for (const f of shape.firsts) {
@@ -88,20 +103,35 @@ function maskFullName(value: string, row: string[], masked: string[], shape: Row
         for (const sep of [' ', '  ', '']) {
           for (const glue of ['', ' ']) {
             if (value !== `${title}${glue}${first}${sep}${last}`) continue;
+            const rebuilt = `${title}${glue}${masked[f]}${sep}${masked[l]}`;
             if (last.trim()) proxy.link(`${first.trim()} ${last.trim()}`, `${masked[f]!.trim()} ${masked[l]!.trim()}`, 'person_name');
-            return `${title}${glue}${masked[f]}${sep}${masked[l]}`;
+            proxy.link(value.trim(), rebuilt.trim(), 'person_name');
+            return rebuilt;
           }
         }
       }
     }
   }
-  const title = shape.titles.map((i) => row[i] ?? '').find((t) => t.trim() && value.trimStart().startsWith(t.trim()));
+  return null;
+}
+
+/**
+ * A name not made of its row's parts: the fake the map already has for it
+ * (with or without a leading title), else a new one with the title kept.
+ */
+function maskWholeName(value: string, row: string[], shape: RowShape, proxy: PrivacyProxy): string {
+  const map = proxy.getMap();
+  const known = map.getFake(value.trim());
+  if (known !== undefined) return keepEdges(value, known);
+  const lead = value.match(/^\s*/)![0];
+  const body = value.slice(lead.length);
+  const title = shape.titles.map((i) => (row[i] ?? '').trim()).find((t) => t && body.startsWith(t)) ?? proxy.titleOf(body);
   if (title) {
-    const lead = value.slice(0, value.indexOf(title.trim()) + title.trim().length);
-    const rest = value.slice(lead.length);
-    return lead + keepEdges(rest, proxy.replace(rest.trim(), 'person_name', { sex }));
+    const rest = body.slice(title.length);
+    const fake = map.getFake(rest.trim()) ?? proxy.replace(rest.trim(), 'person_name', { sex: proxy.sexOfTitle(title) });
+    return lead + title + keepEdges(rest, fake);
   }
-  return keepEdges(value, proxy.replace(value.trim(), 'person_name', { sex }));
+  return keepEdges(value, proxy.replace(value.trim(), 'person_name', { sex: sexOf(row, shape, proxy) }));
 }
 
 // ─── Other cells ────────────────────────────────────────────────

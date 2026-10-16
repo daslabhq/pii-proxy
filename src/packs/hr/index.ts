@@ -31,5 +31,9 @@ export function hr(): Pack {
 /** Matched against the header squashed: "Emp Code" → "empcode", "Prepared By" → "preparedby". */
 const HEADERS: Array<[RegExp, string | null]> = [
   [/^(?:emp|employee|staff|personnel|worker)(?:code|id|no|number|num)$/, 'employee_id'],
+  [/^(?:emp)?(?:temp)?cardno$/, 'employee_id'],
+  [/^(?:reportto|manager|supervisor)(?:emp)?(?:code|id|no)$/, 'employee_id'],
+  [/^(?:reportto(?:emp)?|manager|supervisor|head)(?:full)?name(?:eng|en|th)?$/, 'person_name'],
   [/^(?:approver|approvedby|auditor|organizer|organiser|reviewer|checker|requester|requestedby|preparedby|createdby)(?:eng|en|th)?$/, 'person_name'],
+  [/^workpermit(?:no|number)?$/, 'national_id'],
 ];
