@@ -35,5 +35,6 @@ const HEADERS: Array<[RegExp, string | null]> = [
   [/^(?:reportto|manager|supervisor)(?:emp)?(?:code|id|no)$/, 'employee_id'],
   [/^(?:reportto(?:emp)?|manager|supervisor|head)(?:full)?name(?:eng|en|th)?$/, 'person_name'],
   [/^(?:approver|approvedby|auditor|organizer|organiser|reviewer|checker|requester|requestedby|preparedby|createdby)(?:eng|en|th)?$/, 'person_name'],
-  [/^workpermit(?:no|number)?$/, 'national_id'],
+  // A work permit's number has no shape a detector knows: the header is believed, like a passport's.
+  [/^workpermit(?:no|number|id)?$/, 'work_permit'],
 ];

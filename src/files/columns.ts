@@ -62,7 +62,9 @@ const ENGLISH: Array<[RegExp, string]> = [
   [new RegExp(`^${PERSON_PREFIX}name${LANG_SUFFIX}$`), 'person_name'],
   [new RegExp(`^${PERSON_PREFIX}fullname${LANG_SUFFIX}$`), 'person_name'],
   [new RegExp(`^(?:emp|employee|person)?(?:title|prefix|salutation)${LANG_SUFFIX}$`), 'title'],
-  [/(?:nationalid|citizenid|identitycard|identityno|idcard|idcardno|idno|passport(?:no|number)?|taxid|ssn|socialsecurity(?:no|number|id))/, 'national_id'],
+  // A passport number has no shape a detector knows, so its header is believed as it stands.
+  [/passport(?:no|number|id)?/, 'passport_number'],
+  [/(?:nationalid|citizenid|identitycard|identityno|idcard|idcardno|idno|taxid|ssn|socialsecurity(?:no|number|id))/, 'national_id'],
   [/^(?:e?mail|emailaddress|.*email)$/, 'email'],
   [/(?:phone|mobile|telephone|^tel(?:no)?$|^fax)/, 'phone'],
   [/(?:address|street|^addr)/, 'address'],

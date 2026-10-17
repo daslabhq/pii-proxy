@@ -24,6 +24,17 @@ const manager = {
 const proxy = () => new PrivacyProxy({ use: [thai(), hr()], seed: 11 });
 
 describe('records', () => {
+  test('a passport and a work permit are masked on their header alone', async () => {
+    const worker = { ...staff, EmpCode: 'EMP68990', IdentityCard: null, PassportNo: 'MD1234567', WorkPermit: 'WP-0098812' };
+    const { records, columns } = await maskRecords([worker], proxy());
+    const [w] = records as any[];
+    expect(columns.map((c) => `${c.header}:${c.type}`)).toEqual(expect.arrayContaining(['PassportNo:passport_number', 'WorkPermit:work_permit']));
+    expect(w.PassportNo).toMatch(/^[A-Z]{2}\d{7}$/);
+    expect(w.PassportNo).not.toBe('MD1234567');
+    expect(w.WorkPermit).toMatch(/^[A-Z]{2}-\d{7}$/);
+    expect(w.WorkPermit).not.toBe('WP-0098812');
+  });
+
   test('every personal column is masked; org, pay and dates are untouched and keep their types', async () => {
     const { records } = await maskRecords([staff, manager], proxy());
     const [s] = records as any[];
