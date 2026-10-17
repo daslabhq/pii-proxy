@@ -121,7 +121,10 @@ const employeeIdGenerator: Generator = (real, ctx) => {
   // The first two digits often mark a cohort (a hire year, a site) and are
   // kept while that leaves room; a crowded cohort draws from the whole range.
   const keep = digits.length > 3 && ctx.attempt < KEEP_COHORT_TRIES ? 2 : 0;
-  return prefix + digits.slice(0, keep) + faker.string.numeric({ length: digits.length - keep, allowLeadingZeros: true }) + rest;
+  // A range too small or too crowded for one more (badge "7", a placeholder
+  // "0") grows a digit at a time rather than run out.
+  const grow = ctx.attempt < 200 ? 0 : ctx.attempt < 600 ? 1 : 2;
+  return prefix + digits.slice(0, keep) + faker.string.numeric({ length: digits.length - keep + grow, allowLeadingZeros: true }) + rest;
 };
 
 /**

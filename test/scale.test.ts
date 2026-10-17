@@ -38,3 +38,24 @@ describe('a whole workforce', () => {
     expect(again.records).toEqual(records.slice(0, 50));
   });
 });
+
+describe('a range that runs out', () => {
+  test('badge numbers of one digit grow a digit, and nothing is left unmasked', async () => {
+    const rows = Array.from({ length: 300 }, (_, i) => ({ EmpCode: `EMP${10000 + i}`, EmpCardNo: String(i % 10), EmpTempCardNo: String(i % 100) }));
+    const { records } = await maskRecords(rows, new PrivacyProxy({ use: [hr()] }));
+    for (const [i, r] of records.entries()) {
+      expect(r.EmpCardNo).not.toBe(rows[i]!.EmpCardNo);
+      expect(r.EmpTempCardNo).not.toBe(rows[i]!.EmpTempCardNo);
+    }
+    expect(new Set(records.map((r) => r.EmpCardNo)).size).toBe(10);
+  });
+
+  test('a value no generator can place gets a numbered label rather than failing the batch', () => {
+    const proxy = new PrivacyProxy({ generators: { stuck: () => 'same' } });
+    const first = proxy.replace('alpha-value', 'stuck');
+    const second = proxy.replace('beta-value', 'stuck');
+    expect(first).toBe('same');
+    expect(second).toBe('[stuck #2]');
+    expect(proxy.getMap().getReal('[stuck #2]')).toBe('beta-value');
+  });
+});

@@ -177,7 +177,7 @@ If your task leans on entity surface properties, treat pii-proxy as a fluency la
 | Employee ID | Table columns (`pii-proxy/files`) | Letters and first two digits kept while that cohort has room, rest new |
 | *Custom* | Local LLM | Format-preserving fallback |
 
-Whatever generates it, a fake never equals a real value the proxy has seen, and never contains one that a search looks for: a full name, an ID, a code. Lone first and last names and numbers under nine digits are never searched for, so a fake may contain one; in a large staff the common ones are the very roots fakes are built from. Searching masked output for real full names and IDs is a valid check.
+Whatever generates it, a fake never equals a real value the proxy has seen, and never contains one that a search looks for: a full name, an ID, a code. Lone first and last names and numbers under nine digits are never searched for, so a fake may contain one; in a large staff the common ones are the very roots fakes are built from. Searching masked output for real full names and IDs is a valid check. A generator that runs out of fakes (a tiny range of badge numbers, a crowded one) grows its values a digit at a time, and as a last resort a value gets a numbered label such as `[employee_id #812]`: a batch is never left unmasked because one column ran out.
 
 ## Structured data
 

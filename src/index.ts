@@ -248,7 +248,22 @@ export class PrivacyProxy {
         return fake;
       }
     }
-    throw new Error(`pii-proxy: no free fake for a ${type} value after ${MAX_ATTEMPTS} tries`);
+    return this.lastResort(real, type, count);
+  }
+
+  /**
+   * Any generator can run out: a tiny range, a crowded one, a pool smaller
+   * than the staff. A numbered label then stands in, unique by its number,
+   * so one exhausted column never leaves a whole batch unmasked.
+   */
+  private lastResort(real: string, type: string, count: number): string {
+    for (let n = count + 1; ; n++) {
+      const label = `[${type} #${n}]`;
+      if (this.isFree(label)) {
+        this.map.set(real, label, type);
+        return label;
+      }
+    }
   }
 
   /**
