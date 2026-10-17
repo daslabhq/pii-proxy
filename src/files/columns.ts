@@ -33,9 +33,12 @@ export async function detectColumns(rows: string[][], proxy: PrivacyProxy): Prom
 }
 
 /** The values a table's personal columns hold — what a batch reserves before faking anything. */
-export function personalValues(rows: string[][], columns: Column[]): string[] {
-  const personal = columns.filter((c) => c.type !== 'title');
-  return rows.slice(1).flatMap((row) => personal.map((c) => (row[c.index] ?? '').trim())).filter(Boolean);
+/** Every personal value of a table, announced to the proxy with its column's type before any fake is made. */
+export function reservePersonal(rows: string[][], columns: Column[], proxy: PrivacyProxy): void {
+  for (const c of columns) {
+    if (c.type === 'title') continue;
+    proxy.reserve(rows.slice(1).map((row) => (row[c.index] ?? '').trim()).filter(Boolean), c.type);
+  }
 }
 
 async function typeOf(header: string, values: string[], proxy: PrivacyProxy): Promise<string | null> {

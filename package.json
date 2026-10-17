@@ -1,6 +1,6 @@
 {
   "name": "pii-proxy",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Privacy proxy for AI agents. Mask PII before sending to LLMs, unmask responses to write back to real systems.",
   "type": "module",
   "main": "dist/index.js",

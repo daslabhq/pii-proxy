@@ -67,7 +67,11 @@ const firstName: Generator = (real, ctx) => {
   if (!THAI_SCRIPT.test(real)) return base.first_name(real, ctx);
   const male = (ctx.hints.sex ?? (ctx.rng() < 0.5 ? 'male' : 'female')) === 'male';
   if (ctx.attempt < 10) return pick(male ? FIRST_MALE : FIRST_FEMALE, ctx.rng);
-  return pick(male ? FRONT_MALE : FRONT_FEMALE, ctx.rng) + pick(male ? END_MALE : END_FEMALE, ctx.rng);
+  const front = male ? FRONT_MALE : FRONT_FEMALE;
+  const end = pick(male ? END_MALE : END_FEMALE, ctx.rng);
+  if (ctx.attempt < 100) return pick(front, ctx.rng) + end;
+  // A whole workforce can use up two-part names: three parts, as long names are built.
+  return pick(front, ctx.rng) + pick(front, ctx.rng) + end;
 };
 
 const lastName: Generator = (real, ctx) => {
@@ -75,7 +79,9 @@ const lastName: Generator = (real, ctx) => {
   const root = pick(SURNAME_ROOTS, ctx.rng);
   if (ctx.attempt < 10) return root;
   if (ctx.attempt < 40) return root + pick(SURNAME_SUFFIXES, ctx.rng);
-  return root + pick(SURNAME_ROOTS, ctx.rng);
+  if (ctx.attempt < 200) return root + pick(SURNAME_ROOTS, ctx.rng);
+  // Thai surnames are near unique per family, so a large staff needs more than two roots give.
+  return root + pick(SURNAME_ROOTS, ctx.rng) + pick(SURNAME_SUFFIXES, ctx.rng);
 };
 
 const fullName: Generator = (real, ctx) => `${firstName(real, ctx)} ${lastName(real, ctx)}`;

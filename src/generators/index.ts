@@ -59,11 +59,15 @@ const trackingGenerator: Generator = (real) => {
 };
 
 const firstNameGenerator: Generator = (_real, ctx) => {
-  return faker.person.firstName(ctx?.hints?.sex);
+  const first = faker.person.firstName(ctx?.hints?.sex);
+  // About 500 per sex: once a large staff has used them up, double names, as Mary-Ann.
+  return (ctx?.attempt ?? 0) < 20 ? first : `${first}-${faker.person.firstName(ctx?.hints?.sex)}`;
 };
 
-const lastNameGenerator: Generator = () => {
-  return faker.person.lastName();
+const lastNameGenerator: Generator = (_real, ctx) => {
+  const last = faker.person.lastName();
+  // About ten thousand in all: a staff larger than that gets double-barrelled ones.
+  return (ctx?.attempt ?? 0) < 20 ? last : `${last}-${faker.person.lastName()}`;
 };
 
 const personNameGenerator: Generator = (_real, ctx) => {
@@ -105,13 +109,18 @@ const dateGenerator: Generator = (real) => {
 };
 
 /** An employee or customer code: letters kept, the first two digits kept (they often encode a year), the rest new. */
+/** Tries at a fake in the real ID's own cohort before any number of the same length will do. */
+const KEEP_COHORT_TRIES = 20;
+
 const employeeIdGenerator: Generator = (real, ctx) => {
   // An internal record id (a GUID) carries no shape worth keeping: a fresh one.
   if (GUID.test(real.trim())) return matchCase(faker.string.uuid(), real);
   const m = real.match(/^([^\d]*)(\d+)(.*)$/);
   if (!m) return formatPreservingGenerator(real, ctx);
   const [, prefix, digits, rest] = m;
-  const keep = digits.length > 3 ? 2 : 0;
+  // The first two digits often mark a cohort (a hire year, a site) and are
+  // kept while that leaves room; a crowded cohort draws from the whole range.
+  const keep = digits.length > 3 && ctx.attempt < KEEP_COHORT_TRIES ? 2 : 0;
   return prefix + digits.slice(0, keep) + faker.string.numeric({ length: digits.length - keep, allowLeadingZeros: true }) + rest;
 };
 

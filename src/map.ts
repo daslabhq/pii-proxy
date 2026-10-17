@@ -8,12 +8,18 @@ export class BijectiveMap {
   private realToFake = new Map<string, string>();
   private fakeToReal = new Map<string, string>();
   private types = new Map<string, string>();
+  private counts = new Map<string, number>();
 
   /** Map a real value to its fake replacement, optionally recording what kind of value it is. */
   set(real: string, fake: string, type?: string): void {
     this.realToFake.set(real, fake);
     this.fakeToReal.set(fake, real);
-    if (type) this.types.set(real, type);
+    if (!type) return;
+    const before = this.types.get(real);
+    if (before === type) return;
+    if (before) this.counts.set(before, (this.counts.get(before) ?? 1) - 1);
+    this.counts.set(type, (this.counts.get(type) ?? 0) + 1);
+    this.types.set(real, type);
   }
 
   /** The type a real value was masked as, when it was recorded. */
@@ -23,9 +29,7 @@ export class BijectiveMap {
 
   /** How many mapped values have this type. */
   countOf(type: string): number {
-    let n = 0;
-    for (const t of this.types.values()) if (t === type) n++;
-    return n;
+    return this.counts.get(type) ?? 0;
   }
 
   /** Get the fake value for a real value, or undefined. */

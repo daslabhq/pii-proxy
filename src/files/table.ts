@@ -9,7 +9,7 @@
  * national IDs and card numbers.
  */
 import type { PrivacyProxy } from '../index.js';
-import { detectColumns, personalValues, type Column, type ColumnFinding } from './columns.js';
+import { detectColumns, reservePersonal, type Column, type ColumnFinding } from './columns.js';
 
 export interface MaskedTable {
   rows: string[][];
@@ -24,7 +24,7 @@ const SWEPT_TYPES = ['email', 'national_id', 'credit_card'];
 /** Pass `finding` when the columns were detected already — a batch reserves every table's values before masking any. */
 export async function maskTable(rows: string[][], proxy: PrivacyProxy, finding?: ColumnFinding): Promise<MaskedTable> {
   const { columns, people } = finding ?? (await detectColumns(rows, proxy));
-  proxy.reserve(personalValues(rows, columns));
+  reservePersonal(rows, columns, proxy);
   const [header = [], ...body] = rows;
   const shape = rowShape(columns);
   const names = columns.filter((c) => c.type === 'person_name');

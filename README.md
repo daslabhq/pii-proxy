@@ -174,10 +174,10 @@ If your task leans on entity surface properties, treat pii-proxy as a fluency la
 | Medical record | Local LLM | Format-preserving fake |
 | Insurance ID | Local LLM | Format-preserving fake |
 | First / last name | Table columns (`pii-proxy/files`) | Faker name; follows a title's sex |
-| Employee ID | Table columns (`pii-proxy/files`) | Letters and first two digits kept, rest new |
+| Employee ID | Table columns (`pii-proxy/files`) | Letters and first two digits kept while that cohort has room, rest new |
 | *Custom* | Local LLM | Format-preserving fallback |
 
-Whatever generates it, a fake never equals or contains a real value the proxy has seen — so searching masked output for real names is a valid check.
+Whatever generates it, a fake never equals a real value the proxy has seen, and never contains one that a search looks for: a full name, an ID, a code. Lone first and last names and numbers under nine digits are never searched for, so a fake may contain one; in a large staff the common ones are the very roots fakes are built from. Searching masked output for real full names and IDs is a valid check.
 
 ## Structured data
 
@@ -286,6 +286,7 @@ const { results, skipped } = await maskFiles([
 - **Batches are consistent.** Every personal value of a batch is reserved before any fake is made; with the map persisted, next month's files get the same fakes.
 - **One CSV per sheet.** A workbook comes back as CSV, with a BOM so Excel opens non-Latin text correctly.
 - **Rows from a database or an API.** `maskRecords(rows, proxy)` takes the objects a driver returns and gives them back in the same shape: personal columns masked, every other cell untouched and in its own type. A name under a header nobody anticipated is still caught once the map knows it.
+- **Anyone the map has met, anywhere.** `replaceKnown(proxy.getMap())` returns a function that swaps every known full name, ID and code in a text for its fake, and makes nothing new. It reads the text once however many people the map holds, so it can run over everything a system says back: a log line, a tool's output, a file read in a sandbox. Lone first and last names, values under six characters and numbers under nine digits are skipped, being ordinary words or amounts as often as people; a code is matched only whole, so `EMP1234` is not found inside `EMP12345`.
 
 ## Security model
 
@@ -481,7 +482,7 @@ See [`experiments/`](experiments/) for every script, every result, every caveat.
 - [x] **v0.2** — Pluggable entity detection — bring your own detectors (local LLM, custom regex). Layered pipeline: fast regex first, LLM for names/locations/domain-specific entities
 - [x] **Model: training recipe** — reproducible fine-tune pipeline ([exps 002–005](experiments/)): `pii-proxy-ner` matches NVIDIA's flagship `gliner-PII` on Nemotron with a third of its parameters (153M vs 445M); a 3-epoch run of the recipe takes 39 min for ~$8. `pii-proxy-learn` CLI labels your own traces for domain fine-tunes
 - [x] **Model: validation** — out-of-distribution pipeline benchmark vs Microsoft Presidio ([exp 006](experiments/006-presidio-head-to-head/)): 75.7% vs 42.0% F1, with adversarial audit of the methodology
-- [x] **Packs and files** — locale packs (`pii-proxy/packs/*`), spreadsheet and CSV masking (`pii-proxy/files`), typed map entries, fakes that never contain a real value
+- [x] **Packs and files** — locale packs (`pii-proxy/packs/*`), spreadsheet and CSV masking (`pii-proxy/files`), typed map entries, fakes that never contain a real value a search looks for
 - [ ] **v0.3** — Ship a model detector by default (ONNX export, model-first default ordering). Benchmarked in [exp 007](experiments/007-detector-benchmark/): OpenAI Privacy Filter masks the most identifiers in six languages (95–98%), GLiNER2-PII leads on Thai with word segmentation (91.5%), `pii-proxy-ner` is the fastest (1.3 s per 450-word letter on 2 CPU cores) and needs its 55-label checkpoint published. Choosing between them is next
 - [ ] **Pack adapters** — a pack may carry a LoRA adapter for the model detector (GLiNER2 loads and swaps 2–10 MB adapters natively). Locale packs own the adapter (language is what a base model lacks); domain packs stay labels plus rules (zero-shot handles domain concepts), so `use: [thai(), medical()]` is one pass, not two. First: Thai. [exp 007](experiments/007-detector-benchmark/) measured it: with a word segmenter in front, GLiNER2-PII masks 91% of Thai names without Thai fine-tuning (50% without the segmenter), so segmentation comes before any adapter
 - [ ] **Domain packs, when there is data to build them against** — medical (record and insurance numbers, dates shifted consistently per patient, ages 90+ grouped), legal (case and docket numbers, parties named in captions)

@@ -16,7 +16,7 @@
  */
 import type { PrivacyProxy } from '../index.js';
 import { knownValues } from '../detectors/known.js';
-import { detectColumns, personalValues, type Column, type ColumnFinding } from './columns.js';
+import { detectColumns, reservePersonal, type Column, type ColumnFinding } from './columns.js';
 import { maskTable } from './table.js';
 import { parseCsv, toCsv } from './csv.js';
 import { readXlsx, type Sheet } from './xlsx.js';
@@ -64,7 +64,7 @@ export async function maskFiles(inputs: InputFile[], proxy: PrivacyProxy): Promi
   const { read, skipped } = readAll(inputs);
   const findings = await findColumns(read, proxy);
   for (const [i, f] of read.entries()) {
-    if (f.kind === 'sheets') f.sheets.forEach((s, j) => proxy.reserve(personalValues(s.rows, findings[i]![j]!.columns)));
+    if (f.kind === 'sheets') f.sheets.forEach((s, j) => reservePersonal(s.rows, findings[i]![j]!.columns, proxy));
   }
   const results: FileResult[] = [];
   for (const [i, f] of read.entries()) {

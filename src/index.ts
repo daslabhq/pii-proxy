@@ -7,7 +7,8 @@ export { BijectiveMap } from './map.js';
 export { type Detection, type Detector, defaultDetectors } from './detectors/index.js';
 export { type Generator, type GeneratorContext, generators, getGenerator, withheld } from './generators/index.js';
 export { LlmDetector, type LlmDetectorOptions } from './detectors/llm.js';
-export { knownValues, type KnownValuesOptions } from './detectors/known.js';
+export { knownValues, replaceKnown, type KnownValuesOptions } from './detectors/known.js';
+import { isSearchable } from './detectors/known.js';
 export { learn, type LearnOptions, type LearnResult, type LearnedRecord, type LearnedSpan } from './learn.js';
 
 export interface MaskResult {
@@ -49,8 +50,11 @@ export interface PrivacyProxyOptions {
   seed?: number;
 }
 
-/** Real values shorter than this are too common as plain words to police inside a fake. */
-const MIN_POLICED_LENGTH = 3;
+/**
+ * The shortest real value a fake may not hold: the shortest the known-values
+ * search looks for (detectors/known.ts `isSearchable`, the whole rule).
+ */
+const MIN_POLICED_LENGTH = 6;
 const MAX_ATTEMPTS = 2000;
 
 export class PrivacyProxy {
@@ -60,6 +64,9 @@ export class PrivacyProxy {
   private rng: () => number;
   /** Every real value seen or announced: no fake may equal or contain one. */
   private reals = new Set<string>();
+  /** The reals a fake may not hold, lowercased, and the longest of them. */
+  private policed = new Set<string>();
+  private longestPoliced = 0;
   /** Header rules contributed by packs, for table masking. */
   readonly headers: Array<[RegExp, string | null]>;
   private titles: Array<[RegExp, 'male' | 'female']>;
@@ -190,7 +197,7 @@ export class PrivacyProxy {
 
   loadMap(data: string): void {
     this.map = BijectiveMap.deserialize(data);
-    for (const [real] of this.map.entries()) this.reals.add(real);
+    for (const [real] of this.map.entries()) this.remember(real, this.map.typeOf(real));
   }
 
   get size(): number {
@@ -200,12 +207,14 @@ export class PrivacyProxy {
   /**
    * Announce real values before masking them. Masking a batch — every file
    * of a month, every row of a table — reserves all of it first, so no fake
-   * made for the first value can contain a name that only a later one holds.
+   * made for the first value can be or contain a name that only a later one
+   * holds. Pass the type when it is known: a first or last name is never
+   * made a fake, but a fake may contain one.
    */
-  reserve(values: Iterable<string>): void {
+  reserve(values: Iterable<string>, type?: string): void {
     for (const v of values) {
       const t = v.trim();
-      if (t) this.reals.add(t);
+      if (t) this.remember(t, type);
     }
   }
 
@@ -221,14 +230,14 @@ export class PrivacyProxy {
    */
   link(real: string, fake: string, type?: string): void {
     if (!real || !fake || real === fake || this.map.hasFake(real) || this.map.getReal(fake) !== undefined) return;
-    this.reals.add(real);
+    this.remember(real, type);
     this.map.set(real, fake, type);
   }
 
   private getOrCreateFake(real: string, type: string, hints: GeneratorContext['hints'] = {}): string {
     const existing = this.map.getFake(real);
     if (existing) return existing;
-    this.reals.add(real.trim());
+    this.remember(real.trim(), type);
 
     const generator = this.gens[type] ?? getGenerator(type);
     const count = this.map.countOf(type);
@@ -242,14 +251,38 @@ export class PrivacyProxy {
     throw new Error(`pii-proxy: no free fake for a ${type} value after ${MAX_ATTEMPTS} tries`);
   }
 
-  /** A fake is free when it is no one's fake yet and neither equals nor contains a real value. */
+  /**
+   * A real value is never made a fake. It is policed inside fakes only when
+   * the search would look for it: one that is never searched for cannot be
+   * mistaken inside a fake, and in a large staff the common name parts are
+   * the very roots fakes are built from.
+   */
+  private remember(real: string, type?: string): void {
+    if (!real) return;
+    this.reals.add(real);
+    if (!isSearchable(real, type)) {
+      this.policed.delete(real.toLowerCase());
+      return;
+    }
+    this.policed.add(real.toLowerCase());
+    this.longestPoliced = Math.max(this.longestPoliced, real.length);
+  }
+
+  /** A fake is free when it is no one's fake yet, no real value, and holds no real value long enough to be searched for. */
   private isFree(fake: string): boolean {
     if (this.map.getReal(fake) !== undefined || this.reals.has(fake)) return false;
-    const lower = fake.toLowerCase();
-    for (const real of this.reals) {
-      if (real.length >= MIN_POLICED_LENGTH && lower.includes(real.toLowerCase())) return false;
+    return !this.holdsPoliced(fake.toLowerCase());
+  }
+
+  /** Every stretch of the fake long enough to be policed, looked up: the cost follows the fake's length, not how many reals there are. */
+  private holdsPoliced(lower: string): boolean {
+    for (let start = 0; start + MIN_POLICED_LENGTH <= lower.length; start++) {
+      const last = Math.min(lower.length, start + this.longestPoliced);
+      for (let end = start + MIN_POLICED_LENGTH; end <= last; end++) {
+        if (this.policed.has(lower.slice(start, end))) return true;
+      }
     }
-    return true;
+    return false;
   }
 }
 
